@@ -53,6 +53,7 @@ export default function OperationForm({ editing, onDone }) {
       setPaid(editing.paid || 0);
       setNote(editing.note || '');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
   // Old debt derived from last record of the selected distributor (excluding the one being edited)

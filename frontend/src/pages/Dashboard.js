@@ -164,7 +164,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge className={isBatch ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}>
-                      {isBatch ? 'توريد' : 'دفعة'}
+                      {isBatch ? 'استلام' : 'دفعة'}
                     </Badge>
                     <div className="text-sm font-extrabold num-ar text-rose-600">{Number(r.remain).toLocaleString()} ₪</div>
                   </div>

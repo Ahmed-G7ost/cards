@@ -126,7 +126,7 @@ export default function Reports() {
         .seal-box { border: 2px solid #4f46e5; padding: 10px; border-radius: 10px; color: #4f46e5; font-weight: bold; margin-top: 10px; }
       </style></head><body>
       <div class="header">
-        <h1>كشف مبيعات وتوريد</h1>
+        <h1>كشف مبيعات واستلام</h1>
         <p>الموزع: <strong>${title}</strong> · من: ${from || '---'} إلى: ${to || '---'}</p>
         <p>Live Net لخدمات الإنترنت · ${dateStr} — ${timeStr}</p>
       </div>

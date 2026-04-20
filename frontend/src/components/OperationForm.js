@@ -145,7 +145,7 @@ export default function OperationForm({ editing, onDone }) {
               className={`py-2.5 rounded-lg text-sm font-bold ${opType === v ? 'bg-white text-indigo-700 shadow' : 'text-slate-600'}`}
               style={{ transition: 'background-color .2s, color .2s' }}
             >
-              {v === 'طبعة' ? 'توريد فروخ' : 'دفعة مالية'}
+              {v === 'طبعة' ? 'استلام فروخ' : 'دفعة مالية'}
             </button>
           ))}
         </div>

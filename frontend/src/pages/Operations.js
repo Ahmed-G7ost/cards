@@ -21,7 +21,7 @@ export default function Operations() {
               </div>
               {editingRecord ? 'تعديل عملية' : 'تسجيل عملية جديدة'}
             </CardTitle>
-            <p className="text-sm text-slate-500 mt-1">قم بتسجيل توريد فروخ أو دفعة مالية من الموزع</p>
+            <p className="text-sm text-slate-500 mt-1">قم بتسجيل استلام فروخ أو دفعة مالية من الموزع</p>
           </div>
           {editingRecord && (
             <Button variant="outline" onClick={() => setEditingRecord(null)}>إلغاء التعديل</Button>

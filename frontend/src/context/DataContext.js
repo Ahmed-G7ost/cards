@@ -19,12 +19,12 @@ const DataContext = createContext(null);
 const SETTINGS_KEY = 'livenet_settings_v1';
 
 const defaultSettings = {
-  cost: 50, // تكلفة الفرخ الواحد
+  cost: 25, // تكلفة الفرخ الواحد
   defaultPrice: 90,
   prices: {
-    '8 ساعات': 70,
+    '8 ساعات': 90,
     '10 ساعات': 90,
-    '24 ساعة': 150,
+    '24 ساعة': 135,
   },
   excluded: [], // موزعون مستثنون من إجمالي الشبكة
 };

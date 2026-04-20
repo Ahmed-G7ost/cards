@@ -86,7 +86,6 @@ export default function Login() {
         </div>
 
         <div className="relative z-10 text-sm opacity-80 flex items-center gap-2">
-          <Sparkles className="w-4 h-4" /> الإصدار 2.0 · تجربة محسّنة
         </div>
       </div>
 

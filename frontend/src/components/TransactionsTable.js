@@ -126,7 +126,7 @@ export default function TransactionsTable({ onEdit, hideFilters = false, nameFil
                   <td className="px-4 py-3 text-center text-sm text-slate-600">{r.date}</td>
                   <td className="px-4 py-3 text-center">
                     <Badge className={isBatch ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}>
-                      {isBatch ? <><Package className="w-3 h-3 ml-1" /> توريد</> : <><Wallet className="w-3 h-3 ml-1" /> دفعة</>}
+                      {isBatch ? <><Package className="w-3 h-3 ml-1" /> استلام</> : <><Wallet className="w-3 h-3 ml-1" /> دفعة</>}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-center text-sm font-bold text-indigo-700">{isBatch ? r.chickenType || '-' : '-'}</td>

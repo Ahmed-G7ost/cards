@@ -19,7 +19,7 @@ const DataContext = createContext(null);
 const SETTINGS_KEY = 'livenet_settings_v1';
 
 const defaultSettings = {
-  cost: 25, // تكلفة فرخ انترنت الواحد
+  cost: 25, // تكلفة الفرخ الواحد
   defaultPrice: 90,
   prices: {
     '8 ساعات': 90,
@@ -27,9 +27,6 @@ const defaultSettings = {
     '24 ساعة': 135,
   },
   excluded: [], // موزعون مستثنون من إجمالي الشبكة
-  phones: {}, // مرجعي فقط - الأرقام الفعلية محفوظة في Firebase
-  msgChicks: 'السلام عليكم {name}،\nنُحيطكم علماً باستلام طبعة جديدة بتاريخ {date}:\n• النوع: {type}\n• الكمية: {qty} فرخ انترنت\n• سعر الفرخ: {price} ₪\n• إجمالي المستحقات: {remain} ₪\nنرجو التكرم بالتسديد في أقرب وقت ممكن.\nشكراً لتعاملكم معنا 🌐',
-  msgPayment: 'السلام عليكم {name}،\nتم استلام دفعتكم بتاريخ {date}:\n• المبلغ المدفوع: {paid} ₪\n• الرصيد المتبقي: {remain} ₪\nنشكركم على الالتزام ونتطلع لاستمرار تعاملكم معنا 💚',
 };
 
 export function DataProvider({ children }) {
@@ -48,22 +45,10 @@ export function DataProvider({ children }) {
     return defaultSettings;
   });
 
-  // Persist settings locally (they are per-device UI settings) - excluding phones which go to Firebase
+  // Persist settings locally (they are per-device UI settings)
   useEffect(() => {
-    const { phones: _phones, ...settingsWithoutPhones } = settings;
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settingsWithoutPhones));
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }, [settings]);
-
-  // Sync phones from Firebase
-  useEffect(() => {
-    if (!auth_) return;
-    const phonesRef = dbRef(db, 'settings/phones');
-    const unsub = onValue(phonesRef, (snap) => {
-      const val = snap.val() || {};
-      setSettings((prev) => ({ ...prev, phones: val }));
-    });
-    return () => unsub();
-  }, [auth_]);
 
   // Watch Firebase Auth state
   useEffect(() => {
@@ -211,12 +196,6 @@ export function DataProvider({ children }) {
     return data.length;
   }
 
-  async function savePhones(phones) {
-    await dbSet(dbRef(db, 'settings/phones'), phones);
-    // Also update local settings immediately
-    setSettings((prev) => ({ ...prev, phones }));
-  }
-
   async function resetData() {
     await dbSet(dbRef(db, 'distributors'), null);
   }
@@ -296,7 +275,6 @@ export function DataProvider({ children }) {
     metrics,
     settings,
     setSettings,
-    savePhones,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

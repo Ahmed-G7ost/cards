@@ -76,7 +76,7 @@ export default function Dashboard() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <h3 className="text-base font-extrabold text-slate-900">أداء المبيعات الأسبوعي</h3>
-              <p className="text-xs text-slate-500 mt-1">إجمالي قيمة فروخ انترنت المباعة خلال آخر 7 أيام</p>
+              <p className="text-xs text-slate-500 mt-1">إجمالي قيمة الفروخ المباعة خلال آخر 7 أيام</p>
             </div>
             <div className="flex items-center gap-2 text-xs">
               <span className="inline-flex items-center gap-1 text-indigo-600 font-bold">
@@ -96,7 +96,7 @@ export default function Dashboard() {
             <CalendarCheck2 className="w-4 h-4 text-slate-400" />
           </div>
           <div className="space-y-3">
-            <MiniRow icon={Package} label="فروخ انترنت مباعة" value={`${todayMetrics.chicks}`} accent="indigo" />
+            <MiniRow icon={Package} label="فروخ مباعة" value={`${todayMetrics.chicks}`} accent="indigo" />
             <MiniRow icon={TrendingUp} label="قيمة المبيعات" value={`${todayMetrics.sales.toLocaleString()} ₪`} accent="emerald" />
             <MiniRow icon={Wallet} label="المقبوضات" value={`${todayMetrics.paid.toLocaleString()} ₪`} accent="amber" />
             <MiniRow icon={ArrowUpRight} label="عدد العمليات" value={`${todayMetrics.count}`} accent="rose" />
@@ -158,7 +158,7 @@ export default function Dashboard() {
                     <div className="min-w-0">
                       <div className="font-bold text-slate-800 truncate">{r.name}</div>
                       <div className="text-[11px] text-slate-500">
-                        {r.date} · {isBatch ? `${r.qty} فرخ انترنت · ${r.chickenType}` : `دفعة ${Number(r.paid).toLocaleString()} ₪`}
+                        {r.date} · {isBatch ? `${r.qty} فرخ · ${r.chickenType}` : `دفعة ${Number(r.paid).toLocaleString()} ₪`}
                       </div>
                     </div>
                   </div>

@@ -132,7 +132,7 @@ export default function Reports() {
       </div>
       <table>
         <thead><tr>
-          <th>الموزع</th><th>التاريخ</th><th>النوع</th><th>نوع فرخ انترنت</th><th>العدد</th><th>سابق</th><th>مدفوع</th><th>الرصيد</th><th>ملاحظات</th>
+          <th>الموزع</th><th>التاريخ</th><th>النوع</th><th>الفرخ</th><th>العدد</th><th>سابق</th><th>مدفوع</th><th>الرصيد</th><th>ملاحظات</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -225,8 +225,8 @@ export default function Reports() {
           </DialogHeader>
 
           <div className="rounded-2xl p-4 text-white bg-gradient-to-br from-indigo-500 to-violet-500 shadow">
-            <div className="text-xs opacity-90 font-bold">إجمالي فروخ انترنت المباعة</div>
-            <div className="text-3xl font-black num-ar mt-1">{todayMetrics.chicks.toLocaleString()} <span className="text-sm opacity-85">فرخ انترنت</span></div>
+            <div className="text-xs opacity-90 font-bold">إجمالي الفروخ المباعة</div>
+            <div className="text-3xl font-black num-ar mt-1">{todayMetrics.chicks.toLocaleString()} <span className="text-sm opacity-85">فرخ</span></div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

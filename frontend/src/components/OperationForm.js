@@ -73,7 +73,7 @@ export default function OperationForm({ editing, onDone }) {
   const errors = useMemo(() => {
     const errs = [];
     if (!name.trim()) errs.push('أدخل اسم الموزع');
-    if (opType === 'طبعة' && qtyNum <= 0) errs.push('أدخل عدد الفروخ');
+    if (opType === 'طبعة' && qtyNum <= 0) errs.push('أدخل عدد فروخ انترنت');
     if (opType === 'دفعة' && paidNum <= 0) errs.push('أدخل قيمة الدفعة');
     if (opType === 'دفعة' && oldDebt <= 0 && !editing) errs.push('لا توجد مستحقات على هذا الموزع');
     if (opType === 'دفعة' && paidNum > oldDebt) errs.push('المبلغ المدفوع أكبر من الدين الحالي');
@@ -145,7 +145,7 @@ export default function OperationForm({ editing, onDone }) {
               className={`py-2.5 rounded-lg text-sm font-bold ${opType === v ? 'bg-white text-indigo-700 shadow' : 'text-slate-600'}`}
               style={{ transition: 'background-color .2s, color .2s' }}
             >
-              {v === 'طبعة' ? 'استلام فروخ' : 'دفعة مالية'}
+              {v === 'طبعة' ? 'استلام فروخ انترنت' : 'دفعة مالية'}
             </button>
           ))}
         </div>
@@ -181,7 +181,7 @@ export default function OperationForm({ editing, onDone }) {
         <>
           <div>
             <Label className="text-xs font-bold text-slate-600 flex items-center gap-1.5 mb-1.5">
-              <Tag className="w-3.5 h-3.5 text-indigo-500" /> نوع الفرخ
+              <Tag className="w-3.5 h-3.5 text-indigo-500" /> نوع فرخ انترنت
             </Label>
             <Select value={chickenType} onValueChange={setChickenType}>
               <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-slate-200">

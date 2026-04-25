@@ -184,7 +184,7 @@ export default function Distributors() {
                       <div className="text-sm font-extrabold num-ar text-indigo-700 dark:text-indigo-400">{d.recordsCount}</div>
                     </div>
                     <div className="rounded-xl bg-slate-50 dark:bg-slate-700/50 p-2.5">
-                      <div className="text-[10px] text-slate-500 font-bold">آخر نوع</div>
+                      <div className="text-[10px] text-slate-500 font-bold">نوع فرخ انترنت</div>
                       <div className="text-xs font-extrabold text-slate-700 dark:text-slate-300 truncate">{last?.chickenType && last.chickenType !== '-' ? last.chickenType : 'دفعة'}</div>
                     </div>
                   </div>

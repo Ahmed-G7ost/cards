@@ -24,10 +24,10 @@ export default function Layout() {
 
   const pageTitleMap = {
     '/': { title: 'لوحة التحكم', subtitle: 'نظرة سريعة على أداء الشبكة' },
-    '/operations': { title: 'العمليات', subtitle: 'تسجيل طبعات الفروخ والدفعات المالية' },
+    '/operations': { title: 'العمليات', subtitle: 'تسجيل طبعات فروخ انترنت والدفعات المالية' },
     '/distributors': { title: 'الموزعون', subtitle: 'قائمة الموزعين وملخص الديون' },
     '/reports': { title: 'التقارير', subtitle: 'كشوف مفصلة وإغلاقات يومية' },
-    '/settings': { title: 'الإعدادات', subtitle: 'ضبط تكلفة الفرخ، النسخ الاحتياطي والاستثناءات' },
+    '/settings': { title: 'الإعدادات', subtitle: 'ضبط تكلفة فرخ انترنت، النسخ الاحتياطي والاستثناءات' },
   };
   const page = pageTitleMap[location.pathname] || pageTitleMap['/'];
 
@@ -47,7 +47,7 @@ export default function Layout() {
           <Outlet />
         </div>
         <footer className="mt-auto px-8 py-6 text-xs text-slate-500 dark:text-slate-500 border-t border-slate-200/70 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40">
-          © {new Date().getFullYear()} لايف نت — جميع الحقوق محفوظة · نظام إدارة مبيعات الفروخ
+          © {new Date().getFullYear()} لايف نت — جميع الحقوق محفوظة · نظام إدارة مبيعات فروخ انترنت
         </footer>
       </main>
     </div>

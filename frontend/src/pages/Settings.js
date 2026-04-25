@@ -20,7 +20,7 @@ import {
 import { toast } from 'sonner';
 
 export default function Settings() {
-  const { settings, setSettings, distributors, resetData } = useData();
+  const { settings, setSettings, distributors, resetData, savePhones } = useData();
   const [cost, setCost] = useState(settings.cost);
   const [defaultPrice, setDefaultPrice] = useState(settings.defaultPrice);
   const [prices, setPrices] = useState(settings.prices || { '8 ساعات': 70, '10 ساعات': 90, '24 ساعة': 150 });
@@ -28,7 +28,7 @@ export default function Settings() {
   const [phones, setPhones] = useState(settings.phones || {});
   const [msgChicks, setMsgChicks] = useState(
     settings.msgChicks ||
-    'السلام عليكم {name}،\nنُحيطكم علماً باستلام طبعة جديدة بتاريخ {date}:\n• النوع: {type}\n• الكمية: {qty} طير\n• سعر الطير: {price} ₪\n• إجمالي المستحقات: {remain} ₪\nنرجو التكرم بالتسديد في أقرب وقت ممكن.\nشكراً لتعاملكم معنا 🐣'
+    'السلام عليكم {name}،\nنُحيطكم علماً باستلام طبعة جديدة بتاريخ {date}:\n• النوع: {type}\n• الكمية: {qty} فرخ انترنت\n• سعر الفرخ: {price} ₪\n• إجمالي المستحقات: {remain} ₪\nنرجو التكرم بالتسديد في أقرب وقت ممكن.\nشكراً لتعاملكم معنا 🌐'
   );
   const [msgPayment, setMsgPayment] = useState(
     settings.msgPayment ||
@@ -45,9 +45,13 @@ export default function Settings() {
     toast.success('تم حفظ الإعدادات المالية');
   }
 
-  function savePhones() {
-    setSettings({ ...settings, phones });
-    toast.success('تم حفظ أرقام الجوال');
+  async function handleSavePhones() {
+    try {
+      await savePhones(phones);
+      toast.success('تم حفظ أرقام الجوال في قاعدة البيانات');
+    } catch (err) {
+      toast.error('فشل الحفظ: ' + (err?.message || ''));
+    }
   }
 
   function saveMessages() {
@@ -63,7 +67,7 @@ export default function Settings() {
   }
 
   const phoneTags = ['يحوي {name} اسم الموزع', 'يحوي {date} التاريخ', 'يحوي {remain} الرصيد المتبقي'];
-  const chickTags = [...phoneTags, 'يحوي {type} نوع الفرخ', 'يحوي {qty} الكمية', 'يحوي {price} سعر الطير'];
+  const chickTags = [...phoneTags, 'يحوي {type} نوع فرخ انترنت', 'يحوي {qty} الكمية', 'يحوي {price} سعر فرخ انترنت'];
   const payTags = [...phoneTags, 'يحوي {paid} المبلغ المدفوع'];
 
   return (
@@ -80,7 +84,7 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">تكلفة الفرخ الواحد (₪)</Label>
+            <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">تكلفة فرخ انترنت الواحد (₪)</Label>
             <div className="relative">
               <DollarSign className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
               <Input type="number" value={cost} onChange={(e) => setCost(e.target.value)} className="pr-10 h-11 bg-slate-50 dark:bg-slate-800 rounded-xl" />
@@ -110,9 +114,9 @@ export default function Settings() {
             <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
             </div>
-            الأسعار حسب نوع الفرخ
+            الأسعار حسب نوع فرخ انترنت
           </CardTitle>
-          <p className="text-xs text-slate-500 mt-1">يتم اختيار السعر تلقائياً في نموذج العملية عند اختيار نوع الفرخ.</p>
+          <p className="text-xs text-slate-500 mt-1">يتم اختيار السعر تلقائياً في نموذج العملية عند اختيار نوع فرخ انترنت.</p>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {Object.keys(prices).map((type) => (
@@ -142,7 +146,7 @@ export default function Settings() {
               </div>
               أرقام جوال الموزعين
             </CardTitle>
-            <Button onClick={savePhones} className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold h-10 px-5">
+            <Button onClick={handleSavePhones} className="rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold h-10 px-5">
               حفظ الأرقام
             </Button>
           </div>
@@ -192,7 +196,7 @@ export default function Settings() {
         <CardContent className="space-y-5">
           {/* Chicks message */}
           <div>
-            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 block">🐣 رسالة استلام الفروخ</Label>
+            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 block">🌐 رسالة استلام فروخ انترنت</Label>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {chickTags.map((tag) => (
                 <span key={tag} className="text-[10px] bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-100 dark:border-violet-700 rounded-md px-2 py-0.5 font-mono">{tag}</span>

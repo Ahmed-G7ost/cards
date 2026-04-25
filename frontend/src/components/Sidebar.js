@@ -31,17 +31,17 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-[260px] shrink-0 hidden md:flex flex-col bg-white border-l border-slate-200/70 sidebar-shadow">
+    <aside className="w-[260px] shrink-0 hidden md:flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200/70 dark:border-slate-800 sidebar-shadow">
       {/* Brand */}
-      <div className="px-6 pt-7 pb-6 border-b border-slate-100">
+      <div className="px-6 pt-7 pb-6 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-md shadow-indigo-200">
+          <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-md shadow-indigo-200 dark:shadow-indigo-900/50">
             <Waves className="w-6 h-6 text-white" />
             <span className="absolute -top-1 -left-1 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-white" />
           </div>
           <div>
-            <div className="font-extrabold text-slate-900 text-lg leading-tight">لايف نت</div>
-            <div className="text-[11px] text-slate-500 tracking-wide">Live Net · Management</div>
+            <div className="font-extrabold text-slate-900 dark:text-slate-50 text-lg leading-tight">لايف نت</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 tracking-wide">Live Net · Management</div>
           </div>
         </div>
       </div>
@@ -56,8 +56,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               [
                 'group flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-[15px] font-semibold',
-                'hover:bg-slate-50 text-slate-600',
-                isActive ? 'bg-indigo-50 text-indigo-700 shadow-sm' : '',
+                'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300',
+                isActive ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm' : '',
               ].join(' ')
             }
             style={{ transition: 'background-color .2s, color .2s' }}
@@ -69,8 +69,8 @@ export default function Sidebar() {
                     className={[
                       'w-9 h-9 rounded-lg flex items-center justify-center',
                       isActive
-                        ? 'bg-indigo-600 text-white shadow shadow-indigo-200'
-                        : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-indigo-600',
+                        ? 'bg-indigo-600 text-white shadow shadow-indigo-200 dark:shadow-indigo-900/50'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-white dark:group-hover:bg-slate-700 group-hover:text-indigo-600 dark:group-hover:text-indigo-400',
                     ].join(' ')}
                   >
                     <Icon className="w-4 h-4" />
@@ -85,7 +85,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer Stat */}
-      <div className="p-4 border-t border-slate-100">
+      <div className="p-4 border-t border-slate-100 dark:border-slate-800">
         <div className="rounded-2xl p-4 bg-gradient-to-br from-indigo-500 to-violet-500 text-white relative overflow-hidden">
           <div className="absolute inset-0 opacity-20 shimmer pointer-events-none" />
           <div className="text-xs opacity-90 mb-1">إجمالي ديون الشبكة</div>
@@ -94,7 +94,7 @@ export default function Sidebar() {
         </div>
         <button
           onClick={handleLogout}
-          className="mt-3 w-full flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl text-rose-600 border border-rose-100 bg-rose-50/70 hover:bg-rose-100"
+          className="mt-3 w-full flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900 bg-rose-50/70 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/30"
           style={{ transition: 'background-color .2s' }}
         >
           <LogOut className="w-4 h-4" />

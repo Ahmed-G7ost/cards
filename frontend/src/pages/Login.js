@@ -56,7 +56,7 @@ export default function Login() {
             </div>
             <div>
               <div className="text-2xl font-extrabold">لايف نت</div>
-              <div className="text-xs opacity-80">Live Net · إدارة مبيعات الفروخ</div>
+              <div className="text-xs opacity-80">Live Net · إدارة مبيعات فروخ انترنت</div>
             </div>
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function Login() {
             <span className="text-white/90">مبيعات شبكتك</span>
           </h2>
           <p className="mt-4 text-white/80 text-lg max-w-md">
-            تابع ديون الموزعين، طبعات الفروخ والأرباح اليومية من مكان واحد، بواجهة عربية سريعة وأنيقة.
+            تابع ديون الموزعين، طبعات فروخ انترنت والأرباح اليومية من مكان واحد، بواجهة عربية سريعة وأنيقة.
           </p>
 
           <div className="mt-8 grid grid-cols-3 gap-4 max-w-lg">

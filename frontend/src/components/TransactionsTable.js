@@ -43,7 +43,7 @@ export default function TransactionsTable({ onEdit, hideFilters = false, nameFil
   function smsHref(r) {
     const isBatch = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
     const body = isBatch
-      ? `Live Net | استلام فروخ\n\nالموزع: ${r.name}\nالنوع: ${r.chickenType || 'عام'}\nالعدد: ${r.qty} فرخ\nالرصيد السابق: ${r.old} ₪\nالرصيد الإجمالي: ${r.remain} ₪\n\nالتاريخ: ${r.date}\nشكراً لتعاملكم معنا.`
+      ? `Live Net | استلام فروخ انترنت\n\nالموزع: ${r.name}\nالنوع: ${r.chickenType || 'عام'}\nالعدد: ${r.qty} فرخ انترنت\nالرصيد السابق: ${r.old} ₪\nالرصيد الإجمالي: ${r.remain} ₪\n\nالتاريخ: ${r.date}\nشكراً لتعاملكم معنا.`
       : `Live Net | دفعة مالية\n\nالموزع: ${r.name}\nتم استلام دفعة بقيمة: ${r.paid} ₪\nالرصيد المتبقي: ${r.remain} ₪\n\nالتاريخ: ${r.date}\nشكراً لتعاملكم معنا.`;
     return `sms:?body=${encodeURIComponent(body)}`;
   }
@@ -101,7 +101,7 @@ export default function TransactionsTable({ onEdit, hideFilters = false, nameFil
               <th className="px-4 py-3 text-right font-bold">الموزع</th>
               <th className="px-4 py-3 font-bold">التاريخ</th>
               <th className="px-4 py-3 font-bold">النوع</th>
-              <th className="px-4 py-3 font-bold">الفرخ</th>
+              <th className="px-4 py-3 font-bold">نوع فرخ انترنت</th>
               <th className="px-4 py-3 font-bold">العدد</th>
               <th className="px-4 py-3 font-bold">سابق (₪)</th>
               <th className="px-4 py-3 font-bold">مدفوع (₪)</th>

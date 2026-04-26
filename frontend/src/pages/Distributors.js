@@ -20,16 +20,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import { Users, Search, UserCog, MessageSquareText, Phone, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Users, Search, UserCog, MessageSquareText, Phone, AlertCircle, CheckCircle2, Settings2, Copy, Send, X } from 'lucide-react';
+import { Textarea } from '../components/ui/textarea';
+import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 
 export default function Distributors() {
-  const { distributors, records, bulkRenameDistributor } = useData();
+  const { distributors, records, bulkRenameDistributor, phones, notifMsg, DEFAULT_NOTIF_MSG, saveMessages, paymentMsg, internetMsg } = useData();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
   const [renameOpen, setRenameOpen] = useState(false);
   const [oldName, setOldName] = useState('');
   const [newName, setNewName] = useState('');
+  const [notifDistributor, setNotifDistributor] = useState(null); // dialog إرسال إشعار
+  const [editNotifMsgOpen, setEditNotifMsgOpen] = useState(false); // dialog تعديل رسالة الإشعار
+  const [editNotifMsgText, setEditNotifMsgText] = useState('');
+  const [notifMsgSaved, setNotifMsgSaved] = useState(false);
 
   const filtered = useMemo(() => {
     return distributors.filter((d) => {
@@ -42,6 +48,46 @@ export default function Distributors() {
 
   function lastRecordOf(name) {
     return [...records].filter((r) => r.name === name).sort((a, b) => b.ts - a.ts)[0];
+  }
+
+  // بناء رسالة الإشعار للموزع
+  function buildNotifMsg(d) {
+    const today = new Date().toLocaleDateString('ar-EG');
+    return (notifMsg || DEFAULT_NOTIF_MSG)
+      .replace(/\{NAME\}/g, d.name)
+      .replace(/\{DEBT\}/g, d.debt.toLocaleString())
+      .replace(/\{DATE\}/g, today);
+  }
+
+  function getDistribPhone(name) {
+    return (phones || {})[name] || '';
+  }
+
+  function openNotifSms(d) {
+    const phone = getDistribPhone(d.name);
+    const msg = buildNotifMsg(d);
+    window.location.href = `sms:${phone}?body=${encodeURIComponent(msg)}`;
+  }
+
+  function openNotifWhatsapp(d) {
+    const phone = getDistribPhone(d.name).replace(/\D/g, '');
+    const msg = buildNotifMsg(d);
+    const num = phone ? (phone.startsWith('0') ? '972' + phone.slice(1) : phone) : '';
+    const url = num
+      ? `https://wa.me/${num}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  }
+
+  async function saveNotifMsg() {
+    try {
+      await saveMessages({ internetMsg, paymentMsg, notifMsg: editNotifMsgText });
+      setNotifMsgSaved(true);
+      toast.success('تم حفظ رسالة الإشعار ☁️');
+      setTimeout(() => { setNotifMsgSaved(false); setEditNotifMsgOpen(false); }, 1500);
+    } catch (err) {
+      toast.error('فشل الحفظ: ' + (err?.message || ''));
+    }
   }
 
   async function handleRename() {
@@ -73,6 +119,9 @@ export default function Distributors() {
               <span className="text-xs text-slate-400 font-semibold mr-2">({filtered.length.toLocaleString()})</span>
             </CardTitle>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => { setEditNotifMsgText(notifMsg || DEFAULT_NOTIF_MSG); setEditNotifMsgOpen(true); }} className="rounded-xl font-bold text-violet-700 border-violet-200 hover:bg-violet-50">
+                <Settings2 className="w-4 h-4 ml-2" /> إعدادات رسالة الإشعار
+              </Button>
               <Button variant="outline" onClick={() => setRenameOpen(true)} className="rounded-xl font-bold">
                 <UserCog className="w-4 h-4 ml-2" /> تعديل اسم موزع
               </Button>
@@ -152,9 +201,14 @@ export default function Distributors() {
                   </div>
 
                   <div className="mt-3 flex items-center gap-2">
-                    <a href={`sms:?body=${encodeURIComponent(`مرحبا ${d.name}، رصيدك الحالي: ${d.debt.toLocaleString()} ₪`)}`} className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 py-2 hover:bg-sky-100" style={{ transition: 'background-color .2s' }}>
+                    <button
+                      type="button"
+                      onClick={() => setNotifDistributor(d)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 py-2 hover:bg-sky-100"
+                      style={{ transition: 'background-color .2s' }}
+                    >
                       <MessageSquareText className="w-3.5 h-3.5" /> إرسال إشعار
-                    </a>
+                    </button>
                     <a href="#" className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-lg bg-indigo-50 text-indigo-700 py-2 hover:bg-indigo-100" style={{ transition: 'background-color .2s' }}>
                       <Phone className="w-3.5 h-3.5" /> اتصال
                     </a>
@@ -194,6 +248,115 @@ export default function Distributors() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameOpen(false)}>إلغاء</Button>
             <Button onClick={handleRename} className="bg-indigo-600 hover:bg-indigo-700">تحديث الآن</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== Dialog إرسال إشعار ===== */}
+      <Dialog open={!!notifDistributor} onOpenChange={(o) => !o && setNotifDistributor(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-extrabold">
+              <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center">
+                <MessageSquareText className="w-4 h-4" />
+              </div>
+              إرسال إشعار — {notifDistributor?.name}
+            </DialogTitle>
+            <DialogDescription>اختر طريقة إرسال الإشعار للموزع</DialogDescription>
+          </DialogHeader>
+
+          {notifDistributor && (
+            <>
+              {/* رقم الهاتف */}
+              <div className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${getDistribPhone(notifDistributor.name) ? 'bg-sky-50 text-sky-700 border border-sky-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                <Phone className="w-4 h-4 shrink-0" />
+                {getDistribPhone(notifDistributor.name)
+                  ? <span dir="ltr">{getDistribPhone(notifDistributor.name)}</span>
+                  : <span className="text-xs">لم يُضف رقم جوال — يمكنك إضافته من الإعدادات</span>
+                }
+              </div>
+
+              {/* معاينة الرسالة */}
+              <div className="rounded-xl border border-sky-100 bg-sky-50/60 p-4 whitespace-pre-line text-sm leading-relaxed text-sky-900">
+                {buildNotifMsg(notifDistributor)}
+              </div>
+
+              <DialogFooter className="flex-wrap gap-2 sm:gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => { navigator.clipboard.writeText(buildNotifMsg(notifDistributor)); toast.success('تم نسخ الرسالة'); }}
+                  className="rounded-xl font-bold flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" /> نسخ
+                </Button>
+                <Button
+                  onClick={() => openNotifSms(notifDistributor)}
+                  variant="outline"
+                  className="rounded-xl font-bold flex items-center gap-2 border-sky-200 text-sky-700 hover:bg-sky-50"
+                >
+                  <Send className="w-4 h-4" /> إرسال SMS
+                </Button>
+                <Button
+                  onClick={() => openNotifWhatsapp(notifDistributor)}
+                  className="rounded-xl font-bold flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white"
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                  إرسال واتساب
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== Dialog تعديل رسالة الإشعار ===== */}
+      <Dialog open={editNotifMsgOpen} onOpenChange={(o) => { if (!o) setEditNotifMsgOpen(false); }}>
+        <DialogContent className="sm:max-w-[540px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-extrabold">
+              <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-700 flex items-center justify-center">
+                <Settings2 className="w-4 h-4" />
+              </div>
+              إعدادات رسالة إرسال الإشعار
+            </DialogTitle>
+            <DialogDescription>
+              المتغيرات المتاحة:{' '}
+              {['{NAME}', '{DEBT}', '{DATE}'].map((v) => (
+                <code key={v} className="bg-slate-100 px-1 rounded text-[11px] ml-1">{v}</code>
+              ))}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Textarea
+              value={editNotifMsgText}
+              onChange={(e) => setEditNotifMsgText(e.target.value)}
+              rows={6}
+              className="bg-slate-50 rounded-xl text-sm leading-relaxed resize-none"
+              placeholder="اكتب نص رسالة الإشعار..."
+            />
+            {/* معاينة */}
+            <div className="rounded-xl bg-sky-50 border border-sky-100 p-3">
+              <p className="text-[11px] text-sky-700 font-bold mb-1">📱 معاينة:</p>
+              <p className="text-[11px] text-sky-600 whitespace-pre-line leading-relaxed">
+                {(editNotifMsgText || '').replace('{NAME}', 'أحمد محمد').replace('{DEBT}', '5,000').replace('{DATE}', new Date().toLocaleDateString('ar-EG'))}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setEditNotifMsgText(DEFAULT_NOTIF_MSG); }} className="rounded-xl font-bold">
+              إعادة الافتراضي
+            </Button>
+            <Button variant="outline" onClick={() => setEditNotifMsgOpen(false)} className="rounded-xl font-bold">
+              إلغاء
+            </Button>
+            <Button
+              onClick={saveNotifMsg}
+              className={`rounded-xl font-bold flex items-center gap-2 ${notifMsgSaved ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-violet-600 hover:bg-violet-700'} text-white`}
+            >
+              {notifMsgSaved ? <><CheckCircle2 className="w-4 h-4" /> تم الحفظ</> : 'حفظ الرسالة'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

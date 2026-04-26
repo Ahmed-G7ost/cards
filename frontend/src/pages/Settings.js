@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 export default function Settings() {
   const { settings, setSettings, distributors, resetData,
     phones: fbPhones, savePhones, internetMsg: fbInternetMsg, paymentMsg: fbPaymentMsg,
-    saveMessages, DEFAULT_INTERNET_MSG, DEFAULT_PAYMENT_MSG } = useData();
+    notifMsg: fbNotifMsg, saveMessages, DEFAULT_INTERNET_MSG, DEFAULT_PAYMENT_MSG, DEFAULT_NOTIF_MSG } = useData();
   const [cost, setCost] = useState(settings.cost);
   const [defaultPrice, setDefaultPrice] = useState(settings.defaultPrice);
   const [prices, setPrices] = useState(settings.prices || { '8 ساعات': 70, '10 ساعات': 90, '24 ساعة': 150 });
@@ -33,6 +33,7 @@ export default function Settings() {
 
   const [internetMsg, setInternetMsg] = useState(DEFAULT_INTERNET_MSG);
   const [paymentMsg, setPaymentMsg] = useState(DEFAULT_PAYMENT_MSG);
+  const [notifMsg, setNotifMsg] = useState(DEFAULT_NOTIF_MSG);
   const [msgSaved, setMsgSaved] = useState(false);
 
   // مزامنة الأرقام والرسائل من Firebase عند تحميلها
@@ -47,6 +48,10 @@ export default function Settings() {
   React.useEffect(() => {
     if (fbPaymentMsg) setPaymentMsg(fbPaymentMsg);
   }, [fbPaymentMsg]);
+
+  React.useEffect(() => {
+    if (fbNotifMsg) setNotifMsg(fbNotifMsg);
+  }, [fbNotifMsg]);
 
   function saveFinancials() {
     setSettings({
@@ -78,7 +83,7 @@ export default function Settings() {
 
   async function saveMessages_fn() {
     try {
-      await saveMessages({ internetMsg, paymentMsg });
+      await saveMessages({ internetMsg, paymentMsg, notifMsg });
       setMsgSaved(true);
       toast.success('تم حفظ نصوص الرسائل في Firebase ☁️');
       setTimeout(() => setMsgSaved(false), 2000);
@@ -90,6 +95,7 @@ export default function Settings() {
   function resetMessages() {
     setInternetMsg(DEFAULT_INTERNET_MSG);
     setPaymentMsg(DEFAULT_PAYMENT_MSG);
+    setNotifMsg(DEFAULT_NOTIF_MSG);
   }
 
   return (
@@ -253,6 +259,27 @@ export default function Settings() {
               <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold mb-1">📱 معاينة الرسالة:</p>
               <p className="text-[11px] text-amber-600 dark:text-amber-500 whitespace-pre-line leading-relaxed">
                 {paymentMsg.replace('{DATE}', '2024-04-15').replace('{PAID}', '5,000').replace('{REMAIN}', '7,500').replace('{QTY}', '0').replace('{TYPE}', '').replace('{TOTAL}', '0')}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-sky-500" />
+              رسالة إرسال إشعار للموزعين
+            </Label>
+            <p className="text-[11px] text-slate-400 mb-1">المتغيرات: <code className="bg-slate-100 dark:bg-slate-700 px-1 rounded text-[11px]">{"{NAME}"}</code> <code className="bg-slate-100 dark:bg-slate-700 px-1 rounded text-[11px]">{"{DEBT}"}</code> <code className="bg-slate-100 dark:bg-slate-700 px-1 rounded text-[11px]">{"{DATE}"}</code></p>
+            <Textarea
+              value={notifMsg}
+              onChange={(e) => setNotifMsg(e.target.value)}
+              rows={4}
+              className="bg-slate-50 dark:bg-slate-800 rounded-xl text-sm leading-relaxed resize-none mt-1"
+              placeholder="اكتب نص رسالة الإشعار..."
+            />
+            <div className="mt-2 p-3 rounded-xl bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800">
+              <p className="text-[11px] text-sky-700 dark:text-sky-400 font-bold mb-1">📱 معاينة الرسالة:</p>
+              <p className="text-[11px] text-sky-600 dark:text-sky-500 whitespace-pre-line leading-relaxed">
+                {notifMsg.replace('{NAME}', 'أحمد محمد').replace('{DEBT}', '5,000').replace('{DATE}', '2024-04-15')}
               </p>
             </div>
           </div>

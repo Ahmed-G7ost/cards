@@ -49,7 +49,7 @@ function buildMessage(template, r) {
 }
 
 export default function TransactionsTable({ onEdit, hideFilters = false, nameFilter, fromFilter, toFilter }) {
-  const { records, deleteRecord, distributors, settings } = useData();
+  const { records, deleteRecord, distributors, settings, phones, internetMsg, paymentMsg } = useData();
   const [innerName, setInnerName] = useState('');
   const [innerFrom, setInnerFrom] = useState('');
   const [innerTo, setInnerTo] = useState('');
@@ -78,13 +78,13 @@ export default function TransactionsTable({ onEdit, hideFilters = false, nameFil
   function getMessageText(r) {
     const isBatch = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
     const template = isBatch
-      ? (settings?.internetMsg || DEFAULT_INTERNET_MSG)
-      : (settings?.paymentMsg || DEFAULT_PAYMENT_MSG);
+      ? (internetMsg || DEFAULT_INTERNET_MSG)
+      : (paymentMsg || DEFAULT_PAYMENT_MSG);
     return buildMessage(template, r);
   }
 
   function getPhone(name) {
-    return (settings?.phones || {})[name] || '';
+    return (phones || {})[name] || '';
   }
 
   async function doDelete() {

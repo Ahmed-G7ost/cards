@@ -2,6 +2,7 @@ import React from 'react';
 import { Bell, User2, LogOut, Moon, Sun } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useDarkMode } from '../context/DarkModeContext';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +15,10 @@ import { Badge } from './ui/badge';
 import { toast } from 'sonner';
 
 export default function TopBar({ title, subtitle, user, onLogout }) {
-  const { logout, metrics } = useData();
+  const { logout, metrics, notifications } = useData();
   const { dark, toggle } = useDarkMode();
+  const navigate = useNavigate();
+  const unreadCount = (notifications || []).filter((n) => !n.read).length;
 
   const today = new Date().toLocaleDateString('ar-EG', {
     weekday: 'long',
@@ -45,8 +48,6 @@ export default function TopBar({ title, subtitle, user, onLogout }) {
 
         <div className="flex-1" />
 
-
-
         <button
           onClick={toggle}
           className="relative w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700"
@@ -57,14 +58,20 @@ export default function TopBar({ title, subtitle, user, onLogout }) {
         </button>
 
         <button
+          onClick={() => navigate('/notifications')}
           className="relative w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700"
           style={{ transition: 'background-color .2s' }}
+          title="الإشعارات"
         >
           <Bell className="w-4 h-4" />
-          <span className="absolute top-2 left-2 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
+          {unreadCount > 0 && (
+            <span className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
 
-          <DropdownMenu>
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
@@ -82,7 +89,7 @@ export default function TopBar({ title, subtitle, user, onLogout }) {
           <DropdownMenuContent align="start" className="w-56">
             <DropdownMenuLabel>حسابي</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/profile')}>
               <User2 className="w-4 h-4 ml-2" /> الملف الشخصي
             </DropdownMenuItem>
             <DropdownMenuSeparator />

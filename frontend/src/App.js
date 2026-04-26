@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DataProvider, useData } from './context/DataContext';
+import { DarkModeProvider } from './context/DarkModeContext';
 import { Toaster } from './components/ui/sonner';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -53,12 +54,14 @@ function AppRoutes() {
 function App() {
   return (
     <div className="App">
-      <DataProvider>
-        <BrowserRouter>
-          <AppRoutes />
-          <Toaster position="top-center" richColors closeButton />
-        </BrowserRouter>
-      </DataProvider>
+      <DarkModeProvider>
+        <DataProvider>
+          <BrowserRouter>
+            <AppRoutes />
+            <Toaster position="top-center" richColors closeButton />
+          </BrowserRouter>
+        </DataProvider>
+      </DarkModeProvider>
     </div>
   );
 }

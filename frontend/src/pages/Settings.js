@@ -22,7 +22,8 @@ import { toast } from 'sonner';
 export default function Settings() {
   const { settings, setSettings, distributors, resetData,
     phones: fbPhones, savePhones, internetMsg: fbInternetMsg, paymentMsg: fbPaymentMsg,
-    saveMessages, DEFAULT_INTERNET_MSG, DEFAULT_PAYMENT_MSG } = useData();
+    saveMessages, DEFAULT_INTERNET_MSG, DEFAULT_PAYMENT_MSG, DEFAULT_NOTIFY_MSG,
+    notifyMsg: fbNotifyMsg } = useData();
   const [cost, setCost] = useState(settings.cost);
   const [defaultPrice, setDefaultPrice] = useState(settings.defaultPrice);
   const [prices, setPrices] = useState(settings.prices || { '8 ساعات': 70, '10 ساعات': 90, '24 ساعة': 150 });
@@ -33,6 +34,7 @@ export default function Settings() {
 
   const [internetMsg, setInternetMsg] = useState(DEFAULT_INTERNET_MSG);
   const [paymentMsg, setPaymentMsg] = useState(DEFAULT_PAYMENT_MSG);
+  const [notifyMsg, setNotifyMsg] = useState(DEFAULT_NOTIFY_MSG);
   const [msgSaved, setMsgSaved] = useState(false);
 
   // مزامنة الأرقام والرسائل من Firebase عند تحميلها
@@ -47,6 +49,10 @@ export default function Settings() {
   React.useEffect(() => {
     if (fbPaymentMsg) setPaymentMsg(fbPaymentMsg);
   }, [fbPaymentMsg]);
+
+  React.useEffect(() => {
+    if (fbNotifyMsg) setNotifyMsg(fbNotifyMsg);
+  }, [fbNotifyMsg]);
 
   function saveFinancials() {
     setSettings({
@@ -78,7 +84,7 @@ export default function Settings() {
 
   async function saveMessages_fn() {
     try {
-      await saveMessages({ internetMsg, paymentMsg });
+      await saveMessages({ internetMsg, paymentMsg, notifyMsg });
       setMsgSaved(true);
       toast.success('تم حفظ نصوص الرسائل في Firebase ☁️');
       setTimeout(() => setMsgSaved(false), 2000);
@@ -90,6 +96,7 @@ export default function Settings() {
   function resetMessages() {
     setInternetMsg(DEFAULT_INTERNET_MSG);
     setPaymentMsg(DEFAULT_PAYMENT_MSG);
+    setNotifyMsg(DEFAULT_NOTIFY_MSG);
   }
 
   return (
@@ -211,7 +218,7 @@ export default function Settings() {
           </CardTitle>
           <p className="text-xs text-slate-500 mt-1">
             المتغيرات المتاحة:{' '}
-            {['{DATE}', '{QTY}', '{TYPE}', '{TOTAL}', '{PAID}', '{REMAIN}'].map((v) => (
+            {['{DATE}', '{QTY}', '{TYPE}', '{OLD}', '{TOTAL}', '{PAID}', '{REMAIN}', '{NAME}'].map((v) => (
               <code key={v} className="bg-slate-100 dark:bg-slate-700 px-1 rounded text-[11px] ml-1">{v}</code>
             ))}
           </p>
@@ -232,7 +239,7 @@ export default function Settings() {
             <div className="mt-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
               <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold mb-1">📱 معاينة الرسالة:</p>
               <p className="text-[11px] text-emerald-600 dark:text-emerald-500 whitespace-pre-line leading-relaxed">
-                {internetMsg.replace('{DATE}', '2024-04-15').replace('{QTY}', '500').replace('{TYPE}', '10 ساعات').replace('{TOTAL}', '45,000').replace('{REMAIN}', '12,500').replace('{PAID}', '0')}
+                {internetMsg.replace(/{DATE}/g, '2024-04-15').replace(/{QTY}/g, '500').replace(/{TYPE}/g, '10 ساعات').replace(/{OLD}/g, '10,000').replace(/{TOTAL}/g, '45,000').replace(/{REMAIN}/g, '12,500').replace(/{PAID}/g, '0')}
               </p>
             </div>
           </div>
@@ -252,7 +259,28 @@ export default function Settings() {
             <div className="mt-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
               <p className="text-[11px] text-amber-700 dark:text-amber-400 font-bold mb-1">📱 معاينة الرسالة:</p>
               <p className="text-[11px] text-amber-600 dark:text-amber-500 whitespace-pre-line leading-relaxed">
-                {paymentMsg.replace('{DATE}', '2024-04-15').replace('{PAID}', '5,000').replace('{REMAIN}', '7,500').replace('{QTY}', '0').replace('{TYPE}', '').replace('{TOTAL}', '0')}
+                {paymentMsg.replace(/{DATE}/g, '2024-04-15').replace(/{PAID}/g, '5,000').replace(/{OLD}/g, '12,500').replace(/{REMAIN}/g, '7,500').replace(/{QTY}/g, '0').replace(/{TYPE}/g, '').replace(/{TOTAL}/g, '0')}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-2 flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-sky-500" />
+              رسالة زر إرسال إشعار (في قائمة الموزعين)
+            </Label>
+            <Textarea
+              value={notifyMsg}
+              onChange={(e) => setNotifyMsg(e.target.value)}
+              rows={3}
+              className="bg-slate-50 dark:bg-slate-800 rounded-xl text-sm leading-relaxed resize-none mt-1"
+              placeholder="اكتب نص رسالة الإشعار السريع..."
+            />
+            <p className="text-[11px] text-slate-500 mt-1">المتغيرات المتاحة: <code className="bg-slate-100 dark:bg-slate-700 px-1 rounded">{`{NAME}`}</code> <code className="bg-slate-100 dark:bg-slate-700 px-1 rounded">{`{REMAIN}`}</code></p>
+            <div className="mt-2 p-3 rounded-xl bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800">
+              <p className="text-[11px] text-sky-700 dark:text-sky-400 font-bold mb-1">📱 معاينة الرسالة:</p>
+              <p className="text-[11px] text-sky-600 dark:text-sky-500 whitespace-pre-line leading-relaxed">
+                {notifyMsg.replace(/{NAME}/g, 'أحمد محمد').replace(/{REMAIN}/g, '3,500')}
               </p>
             </div>
           </div>

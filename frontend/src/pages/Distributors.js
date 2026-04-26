@@ -24,7 +24,7 @@ import { Users, Search, UserCog, MessageSquareText, Phone, AlertCircle, CheckCir
 import { toast } from 'sonner';
 
 export default function Distributors() {
-  const { distributors, records, bulkRenameDistributor } = useData();
+  const { distributors, records, bulkRenameDistributor, phones, notifyMsg } = useData();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
   const [renameOpen, setRenameOpen] = useState(false);
@@ -152,12 +152,45 @@ export default function Distributors() {
                   </div>
 
                   <div className="mt-3 flex items-center gap-2">
-                    <a href={`sms:?body=${encodeURIComponent(`مرحبا ${d.name}، رصيدك الحالي: ${d.debt.toLocaleString()} ₪`)}`} className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 py-2 hover:bg-sky-100" style={{ transition: 'background-color .2s' }}>
-                      <MessageSquareText className="w-3.5 h-3.5" /> إرسال إشعار
-                    </a>
-                    <a href="#" className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-lg bg-indigo-50 text-indigo-700 py-2 hover:bg-indigo-100" style={{ transition: 'background-color .2s' }}>
-                      <Phone className="w-3.5 h-3.5" /> اتصال
-                    </a>
+                    {(() => {
+                      const phone = phones[d.name] || '';
+                      const msg = (notifyMsg || '')
+                        .replace(/{NAME}/g, d.name)
+                        .replace(/{REMAIN}/g, d.debt.toLocaleString());
+                      const waPhone = phone.replace(/^0/, '972').replace(/\D/g, '');
+                      const waUrl = waPhone
+                        ? `https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`
+                        : `sms:?body=${encodeURIComponent(msg)}`;
+                      return (
+                        <a
+                          href={waUrl}
+                          target={waPhone ? '_blank' : undefined}
+                          rel="noreferrer"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 py-2 hover:bg-sky-100"
+                          style={{ transition: 'background-color .2s' }}
+                          title={phone ? `إرسال لـ ${phone}` : 'لم يُسجَّل رقم'}
+                        >
+                          <MessageSquareText className="w-3.5 h-3.5" /> إرسال إشعار
+                        </a>
+                      );
+                    })()}
+                    {phones[d.name] ? (
+                      <a
+                        href={`tel:${phones[d.name]}`}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-lg bg-indigo-50 text-indigo-700 py-2 hover:bg-indigo-100"
+                        style={{ transition: 'background-color .2s' }}
+                        title={`اتصال بـ ${phones[d.name]}`}
+                      >
+                        <Phone className="w-3.5 h-3.5" /> اتصال
+                      </a>
+                    ) : (
+                      <span
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-lg bg-slate-50 text-slate-400 py-2 cursor-not-allowed"
+                        title="لم يُسجَّل رقم جوال"
+                      >
+                        <Phone className="w-3.5 h-3.5" /> اتصال
+                      </span>
+                    )}
                   </div>
                 </div>
               );

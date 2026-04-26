@@ -22,7 +22,6 @@ import {
 } from '../components/ui/select';
 import { Users, Search, UserCog, MessageSquareText, Phone, AlertCircle, CheckCircle2, Settings2, Copy, Send, X } from 'lucide-react';
 import { Textarea } from '../components/ui/textarea';
-import { Label } from '../components/ui/label';
 import { toast } from 'sonner';
 
 export default function Distributors() {

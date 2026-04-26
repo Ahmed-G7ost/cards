@@ -11,8 +11,6 @@ import Operations from './pages/Operations';
 import Distributors from './pages/Distributors';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
-import Notifications from './pages/Notifications';
-import Profile from './pages/Profile';
 
 function Protected({ children }) {
   const { auth, authLoading } = useData();
@@ -47,8 +45,6 @@ function AppRoutes() {
         <Route path="distributors" element={<Distributors />} />
         <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
-        <Route path="notifications" element={<Notifications />} />
-        <Route path="profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

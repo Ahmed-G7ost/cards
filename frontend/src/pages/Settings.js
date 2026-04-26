@@ -19,34 +19,31 @@ import {
 } from '../components/ui/alert-dialog';
 import { toast } from 'sonner';
 
+const DEFAULT_INTERNET_MSG = `السلام عليكم ورحمة الله،
+نُعلمكم باستلام طردة الفروخ الخاصة بكم بتاريخ {DATE}.
+العدد: {QTY} فرخ | النوع: {TYPE}
+السعر الإجمالي: {TOTAL} ₪ | الرصيد المستحق: {REMAIN} ₪
+شركة Live Net لخدمات الإنترنت 🌐`;
+
+const DEFAULT_PAYMENT_MSG = `السلام عليكم ورحمة الله،
+تم استلام دفعتكم بتاريخ {DATE} وقيمتها {PAID} ₪.
+الرصيد المتبقي: {REMAIN} ₪
+شكراً لتعاملكم معنا 🙏
+شركة Live Net لخدمات الإنترنت`;
+
 export default function Settings() {
-  const { settings, setSettings, distributors, resetData,
-    phones: fbPhones, savePhones, internetMsg: fbInternetMsg, paymentMsg: fbPaymentMsg,
-    saveMessages, DEFAULT_INTERNET_MSG, DEFAULT_PAYMENT_MSG } = useData();
+  const { settings, setSettings, distributors, resetData } = useData();
   const [cost, setCost] = useState(settings.cost);
   const [defaultPrice, setDefaultPrice] = useState(settings.defaultPrice);
   const [prices, setPrices] = useState(settings.prices || { '8 ساعات': 70, '10 ساعات': 90, '24 ساعة': 150 });
   const [confirmReset, setConfirmReset] = useState(false);
 
-  const [phones, setPhones] = useState({});
+  const [phones, setPhones] = useState(() => settings.phones || {});
   const [phonesSaved, setPhonesSaved] = useState(false);
 
-  const [internetMsg, setInternetMsg] = useState(DEFAULT_INTERNET_MSG);
-  const [paymentMsg, setPaymentMsg] = useState(DEFAULT_PAYMENT_MSG);
+  const [internetMsg, setInternetMsg] = useState(settings.internetMsg || DEFAULT_INTERNET_MSG);
+  const [paymentMsg, setPaymentMsg] = useState(settings.paymentMsg || DEFAULT_PAYMENT_MSG);
   const [msgSaved, setMsgSaved] = useState(false);
-
-  // مزامنة الأرقام والرسائل من Firebase عند تحميلها
-  React.useEffect(() => {
-    if (fbPhones && Object.keys(fbPhones).length > 0) setPhones(fbPhones);
-  }, [fbPhones]);
-
-  React.useEffect(() => {
-    if (fbInternetMsg) setInternetMsg(fbInternetMsg);
-  }, [fbInternetMsg]);
-
-  React.useEffect(() => {
-    if (fbPaymentMsg) setPaymentMsg(fbPaymentMsg);
-  }, [fbPaymentMsg]);
 
   function saveFinancials() {
     setSettings({
@@ -65,26 +62,18 @@ export default function Settings() {
     setSettings({ ...settings, excluded: next });
   }
 
-  async function savePhones_fn() {
-    try {
-      await savePhones(phones);
-      setPhonesSaved(true);
-      toast.success('تم حفظ أرقام الجوال في Firebase ☁️');
-      setTimeout(() => setPhonesSaved(false), 2000);
-    } catch (err) {
-      toast.error('فشل الحفظ: ' + (err?.message || ''));
-    }
+  function savePhones() {
+    setSettings({ ...settings, phones });
+    setPhonesSaved(true);
+    toast.success('تم حفظ أرقام الجوال');
+    setTimeout(() => setPhonesSaved(false), 2000);
   }
 
-  async function saveMessages_fn() {
-    try {
-      await saveMessages({ internetMsg, paymentMsg });
-      setMsgSaved(true);
-      toast.success('تم حفظ نصوص الرسائل في Firebase ☁️');
-      setTimeout(() => setMsgSaved(false), 2000);
-    } catch (err) {
-      toast.error('فشل الحفظ: ' + (err?.message || ''));
-    }
+  function saveMessages() {
+    setSettings({ ...settings, internetMsg, paymentMsg });
+    setMsgSaved(true);
+    toast.success('تم حفظ نصوص الرسائل');
+    setTimeout(() => setMsgSaved(false), 2000);
   }
 
   function resetMessages() {
@@ -191,7 +180,7 @@ export default function Settings() {
           </div>
           {distributors.length > 0 && (
             <Button
-              onClick={savePhones_fn}
+              onClick={savePhones}
               className={`rounded-xl font-bold h-10 px-6 ${phonesSaved ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-sky-600 hover:bg-sky-700'} text-white`}
             >
               {phonesSaved ? <><CheckCircle2 className="w-4 h-4 ml-2" /> تم الحفظ</> : <><Phone className="w-4 h-4 ml-2" /> حفظ الأرقام</>}
@@ -259,7 +248,7 @@ export default function Settings() {
 
           <div className="flex gap-3">
             <Button
-              onClick={saveMessages_fn}
+              onClick={saveMessages}
               className={`rounded-xl font-bold h-10 px-6 ${msgSaved ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-violet-600 hover:bg-violet-700'} text-white`}
             >
               {msgSaved ? <><CheckCircle2 className="w-4 h-4 ml-2" /> تم الحفظ</> : <><MessageSquare className="w-4 h-4 ml-2" /> حفظ الرسائل</>}

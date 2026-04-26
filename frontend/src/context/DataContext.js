@@ -29,6 +29,12 @@ const defaultSettings = {
   excluded: [], // موزعون مستثنون من إجمالي الشبكة
 };
 
+const DEFAULT_INTERNET_MSG = `السلام عليكم ورحمة الله،\nنُعلمكم باستلام طردة الفروخ الخاصة بكم بتاريخ {DATE}.\nالعدد: {QTY} فرخ | النوع: {TYPE}\nالرصيد السابق: {OLD} ₪ | السعر الإجمالي: {TOTAL} ₪ | الرصيد المستحق: {REMAIN} ₪\nشركة Live Net لخدمات الإنترنت 🌐`;
+
+const DEFAULT_PAYMENT_MSG = `السلام عليكم ورحمة الله،\nتم استلام دفعتكم بتاريخ {DATE} وقيمتها {PAID} ₪.\nالرصيد السابق: {OLD} ₪ | الرصيد المتبقي: {REMAIN} ₪\nشكراً لتعاملكم معنا 🙏\nشركة Live Net لخدمات الإنترنت`;
+
+const DEFAULT_NOTIFY_MSG = `مرحباً {NAME}، رصيدك الحالي: {REMAIN} ₪\nشركة Live Net لخدمات الإنترنت 🌐`;
+
 export function DataProvider({ children }) {
   const [records, setRecords] = useState([]);
   const [auth_, setAuthUser] = useState(null);
@@ -44,6 +50,13 @@ export function DataProvider({ children }) {
     } catch (_) {}
     return defaultSettings;
   });
+
+  // أرقام الهواتف والرسائل من Firebase
+  const [phones, setPhones] = useState({});
+  const [internetMsg, setInternetMsg] = useState(DEFAULT_INTERNET_MSG);
+  const [paymentMsg, setPaymentMsg] = useState(DEFAULT_PAYMENT_MSG);
+  const [notifyMsg, setNotifyMsg] = useState(DEFAULT_NOTIFY_MSG);
+  const [notifications, setNotifications] = useState([]);
 
   // Persist settings locally (they are per-device UI settings)
   useEffect(() => {
@@ -90,7 +103,41 @@ export function DataProvider({ children }) {
         setDataLoading(false);
       }
     );
-    return () => unsub();
+
+    // تحميل أرقام الهواتف من Firebase
+    const phonesRef = dbRef(db, 'config/phones');
+    const unsubPhones = onValue(phonesRef, (snap) => {
+      const val = snap.val();
+      if (val) setPhones(val);
+    });
+
+    // تحميل نصوص الرسائل من Firebase
+    const messagesRef = dbRef(db, 'config/messages');
+    const unsubMessages = onValue(messagesRef, (snap) => {
+      const val = snap.val();
+      if (val) {
+        if (val.internetMsg) setInternetMsg(val.internetMsg);
+        if (val.paymentMsg) setPaymentMsg(val.paymentMsg);
+        if (val.notifyMsg) setNotifyMsg(val.notifyMsg);
+      }
+    });
+
+    // تحميل الإشعارات من Firebase
+    const notifRef = dbRef(db, 'notifications');
+    const unsubNotif = onValue(notifRef, (snap) => {
+      const val = snap.val();
+      const list = val
+        ? Object.entries(val).map(([id, data]) => ({ id, ...data }))
+        : [];
+      setNotifications(list.sort((a, b) => (b.ts || 0) - (a.ts || 0)));
+    });
+
+    return () => {
+      unsub();
+      unsubPhones();
+      unsubMessages();
+      unsubNotif();
+    };
   }, [auth_]);
 
   // ===== Auth =====
@@ -200,6 +247,45 @@ export function DataProvider({ children }) {
     await dbSet(dbRef(db, 'distributors'), null);
   }
 
+  // ===== حفظ أرقام الهواتف في Firebase =====
+  async function savePhones(phonesData) {
+    await dbSet(dbRef(db, 'config/phones'), phonesData);
+    setPhones(phonesData);
+  }
+
+  // ===== حفظ نصوص الرسائل في Firebase =====
+  async function saveMessages(msgs) {
+    await dbSet(dbRef(db, 'config/messages'), msgs);
+    if (msgs.internetMsg) setInternetMsg(msgs.internetMsg);
+    if (msgs.paymentMsg) setPaymentMsg(msgs.paymentMsg);
+    if (msgs.notifyMsg) setNotifyMsg(msgs.notifyMsg);
+  }
+
+  // ===== إضافة إشعار في Firebase =====
+  async function addNotification(notif) {
+    const notifRef = dbRef(db, 'notifications');
+    await push(notifRef, { ...notif, ts: Date.now(), read: false });
+  }
+
+  // ===== تعليم إشعار كمقروء =====
+  async function markNotificationRead(id) {
+    await update(dbRef(db, `notifications/${id}`), { read: true });
+  }
+
+  // ===== حذف إشعار =====
+  async function deleteNotification(id) {
+    await remove(dbRef(db, `notifications/${id}`));
+  }
+
+  // ===== تعليم كل الإشعارات كمقروءة =====
+  async function markAllNotificationsRead() {
+    const updates = {};
+    notifications.forEach((n) => {
+      if (!n.read) updates[`notifications/${n.id}/read`] = true;
+    });
+    if (Object.keys(updates).length > 0) await update(dbRef(db), updates);
+  }
+
   // ===== Derived =====
   const distributors = useMemo(() => {
     const map = new Map();
@@ -275,6 +361,22 @@ export function DataProvider({ children }) {
     metrics,
     settings,
     setSettings,
+    // Firebase phones & messages
+    phones,
+    savePhones,
+    internetMsg,
+    paymentMsg,
+    saveMessages,
+    DEFAULT_INTERNET_MSG,
+    DEFAULT_PAYMENT_MSG,
+    DEFAULT_NOTIFY_MSG,
+    notifyMsg,
+    // Notifications
+    notifications,
+    addNotification,
+    markNotificationRead,
+    deleteNotification,
+    markAllNotificationsRead,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

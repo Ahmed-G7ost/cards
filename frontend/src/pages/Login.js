@@ -17,7 +17,7 @@ export default function Login() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f6f7fb]" dir="rtl">
+      <div className="min-h-screen flex items-center justify-center bg-[#f6f7fb] dark:bg-[#0f1117]" dir="rtl">
         <div className="flex flex-col items-center gap-3">
           <div className="w-12 h-12 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
           <div className="text-sm text-slate-500 font-semibold">جاري التحقق من الجلسة...</div>
@@ -42,7 +42,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex" dir="rtl">
+    <div className="min-h-screen flex dark:bg-[#0f1117]" dir="rtl">
       {/* Left visual panel */}
       <div className="relative hidden lg:flex flex-col justify-between w-[52%] p-12 text-white overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #a855f7 100%)' }}>
@@ -90,7 +90,7 @@ export default function Login() {
       </div>
 
       {/* Right form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-10 bg-[#f6f7fb]">
+      <div className="flex-1 flex items-center justify-center px-6 py-10 bg-[#f6f7fb] dark:bg-[#0f1117]">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow">

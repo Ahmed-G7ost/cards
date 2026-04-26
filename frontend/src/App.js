@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DataProvider, useData } from './context/DataContext';
+import { DarkModeProvider } from './context/DarkModeContext';
 import { Toaster } from './components/ui/sonner';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -10,6 +11,8 @@ import Operations from './pages/Operations';
 import Distributors from './pages/Distributors';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import Notifications from './pages/Notifications';
+import Profile from './pages/Profile';
 
 function Protected({ children }) {
   const { auth, authLoading } = useData();
@@ -44,6 +47,8 @@ function AppRoutes() {
         <Route path="distributors" element={<Distributors />} />
         <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="notifications" element={<Notifications />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -53,12 +58,14 @@ function AppRoutes() {
 function App() {
   return (
     <div className="App">
-      <DataProvider>
-        <BrowserRouter>
-          <AppRoutes />
-          <Toaster position="top-center" richColors closeButton />
-        </BrowserRouter>
-      </DataProvider>
+      <DarkModeProvider>
+        <DataProvider>
+          <BrowserRouter>
+            <AppRoutes />
+            <Toaster position="top-center" richColors closeButton />
+          </BrowserRouter>
+        </DataProvider>
+      </DarkModeProvider>
     </div>
   );
 }

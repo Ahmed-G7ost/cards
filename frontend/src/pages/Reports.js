@@ -1,19 +1,11 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useData } from '../context/DataContext';
 import TransactionsTable from '../components/TransactionsTable';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '../components/ui/dialog';
-import { FileText, Download, Upload, Printer, CalendarClock, Search, CalendarDays, TrendingUp, Wallet, Package, X } from 'lucide-react';
+import { FileText, Download, Upload, Printer, Search, CalendarDays, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Reports() {
@@ -21,22 +13,9 @@ export default function Reports() {
   const [name, setName] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [dailyOpen, setDailyOpen] = useState(false);
   const fileInput = useRef(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayMetrics = useMemo(() => {
-    let sales = 0, paid = 0, chicks = 0, count = 0;
-    records.forEach((r) => {
-      if (r.date === todayStr) {
-        count++;
-        sales += (Number(r.qty) || 0) * (Number(r.price) || 0);
-        paid += Number(r.paid) || 0;
-        if (r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'))) chicks += Number(r.qty) || 0;
-      }
-    });
-    return { sales, paid, chicks, count };
-  }, [records, todayStr]);
 
   function downloadBackup() {
     if (records.length === 0) {
@@ -154,7 +133,7 @@ export default function Reports() {
       <Card className="card-soft border-0">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-extrabold flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 flex items-center justify-center">
               <FileText className="w-4 h-4" />
             </div>
             أدوات التقارير
@@ -166,15 +145,15 @@ export default function Reports() {
               <Label className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1">
                 <Search className="w-3 h-3" /> اسم الموزع
               </Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم الموزع..." className="h-10 bg-slate-50" />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="اسم الموزع..." className="h-10 bg-slate-50 dark:bg-slate-800" />
             </div>
             <div>
               <Label className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1"><CalendarDays className="w-3 h-3" /> من تاريخ</Label>
-              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-10 bg-slate-50" />
+              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-10 bg-slate-50 dark:bg-slate-800" />
             </div>
             <div className="relative">
               <Label className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 mb-1"><CalendarDays className="w-3 h-3" /> إلى تاريخ</Label>
-              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-10 bg-slate-50" />
+              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-10 bg-slate-50 dark:bg-slate-800" />
               {(name || from || to) && (
                 <button onClick={() => { setName(''); setFrom(''); setTo(''); }} className="absolute left-2 bottom-2 text-xs font-bold text-rose-600 flex items-center gap-1 bg-rose-50 rounded-md px-2 py-1 hover:bg-rose-100" style={{ transition: 'background-color .2s' }}>
                   <X className="w-3 h-3" /> مسح
@@ -184,10 +163,7 @@ export default function Reports() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => setDailyOpen(true)} className="rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold">
-              <CalendarClock className="w-4 h-4 ml-2" /> إغلاق اليوم
-            </Button>
-            <Button onClick={printPDF} className="rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold">
+            <Button onClick={printPDF} className="rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold dark:bg-rose-600 dark:hover:bg-rose-700">
               <Printer className="w-4 h-4 ml-2" /> طباعة كشف PDF
             </Button>
             <Button onClick={downloadBackup} variant="outline" className="rounded-xl font-bold border-slate-200">
@@ -215,49 +191,6 @@ export default function Reports() {
         </CardContent>
       </Card>
 
-      <Dialog open={dailyOpen} onOpenChange={setDailyOpen}>
-        <DialogContent className="sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg font-extrabold">
-              <CalendarClock className="w-5 h-5 text-violet-600" /> ملخص حركة اليوم
-            </DialogTitle>
-            <DialogDescription>نظرة سريعة على عمليات يوم {todayStr}</DialogDescription>
-          </DialogHeader>
-
-          <div className="rounded-2xl p-4 text-white bg-gradient-to-br from-indigo-500 to-violet-500 shadow">
-            <div className="text-xs opacity-90 font-bold">إجمالي الفروخ المباعة</div>
-            <div className="text-3xl font-black num-ar mt-1">{todayMetrics.chicks.toLocaleString()} <span className="text-sm opacity-85">فرخ</span></div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center"><TrendingUp className="w-4 h-4" /></div>
-              <div>
-                <div className="text-[11px] text-slate-500 font-bold">المبيعات</div>
-                <div className="font-extrabold text-emerald-700 num-ar">{todayMetrics.sales.toLocaleString()} ₪</div>
-              </div>
-            </div>
-            <div className="rounded-xl border border-sky-100 bg-sky-50/60 p-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center"><Wallet className="w-4 h-4" /></div>
-              <div>
-                <div className="text-[11px] text-slate-500 font-bold">المقبوضات</div>
-                <div className="font-extrabold text-sky-700 num-ar">{todayMetrics.paid.toLocaleString()} ₪</div>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border border-rose-100 bg-rose-50/60 p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-rose-700 font-bold">
-              <Package className="w-4 h-4" /> صافي ديون اليوم
-            </div>
-            <div className="text-lg font-extrabold num-ar text-rose-700">{(todayMetrics.sales - todayMetrics.paid).toLocaleString()} ₪</div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDailyOpen(false)}>إغلاق</Button>
-            <Button onClick={printPDF} className="bg-indigo-600 hover:bg-indigo-700"><Printer className="w-4 h-4 ml-2" /> طباعة</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

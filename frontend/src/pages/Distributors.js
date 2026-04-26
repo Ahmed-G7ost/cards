@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
-import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -21,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import { Users, Search, UserCog, MessageSquareText, Phone, AlertCircle, CheckCircle2, MessageCircle, MessageSquare, Copy } from 'lucide-react';
+import { Users, Search, UserCog, MessageSquareText, Phone, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Distributors() {
@@ -31,8 +30,6 @@ export default function Distributors() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [oldName, setOldName] = useState('');
   const [newName, setNewName] = useState('');
-  const [notifyDialog, setNotifyDialog] = useState(null); // { name, phone, msg }
-  const [copied, setCopied] = useState(false);
 
   const filtered = useMemo(() => {
     return distributors.filter((d) => {
@@ -45,34 +42,6 @@ export default function Distributors() {
 
   function lastRecordOf(name) {
     return [...records].filter((r) => r.name === name).sort((a, b) => b.ts - a.ts)[0];
-  }
-
-  function openNotifyDialog(d) {
-    const phone = phones[d.name] || '';
-    const msg = (notifyMsg || '')
-      .replace(/{NAME}/g, d.name)
-      .replace(/{REMAIN}/g, d.debt.toLocaleString());
-    setNotifyDialog({ name: d.name, phone, msg });
-    setCopied(false);
-  }
-
-  function handleNotifyWhatsApp() {
-    if (!notifyDialog) return;
-    const waPhone = notifyDialog.phone.replace(/^0/, '972').replace(/\D/g, '');
-    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(notifyDialog.msg)}`, '_blank');
-  }
-
-  function handleNotifySMS() {
-    if (!notifyDialog) return;
-    window.location.href = `sms:${notifyDialog.phone}?body=${encodeURIComponent(notifyDialog.msg)}`;
-  }
-
-  function handleNotifyCopy() {
-    if (!notifyDialog) return;
-    navigator.clipboard.writeText(notifyDialog.msg).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
   }
 
   async function handleRename() {
@@ -183,13 +152,28 @@ export default function Distributors() {
                   </div>
 
                   <div className="mt-3 flex items-center gap-2">
-                    <button
-                      onClick={() => openNotifyDialog(d)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 py-2 hover:bg-sky-100"
-                      style={{ transition: 'background-color .2s' }}
-                    >
-                      <MessageSquareText className="w-3.5 h-3.5" /> إرسال إشعار
-                    </button>
+                    {(() => {
+                      const phone = phones[d.name] || '';
+                      const msg = (notifyMsg || '')
+                        .replace(/{NAME}/g, d.name)
+                        .replace(/{REMAIN}/g, d.debt.toLocaleString());
+                      const waPhone = phone.replace(/^0/, '972').replace(/\D/g, '');
+                      const waUrl = waPhone
+                        ? `https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`
+                        : `sms:?body=${encodeURIComponent(msg)}`;
+                      return (
+                        <a
+                          href={waUrl}
+                          target={waPhone ? '_blank' : undefined}
+                          rel="noreferrer"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 py-2 hover:bg-sky-100"
+                          style={{ transition: 'background-color .2s' }}
+                          title={phone ? `إرسال لـ ${phone}` : 'لم يُسجَّل رقم'}
+                        >
+                          <MessageSquareText className="w-3.5 h-3.5" /> إرسال إشعار
+                        </a>
+                      );
+                    })()}
                     {phones[d.name] ? (
                       <a
                         href={`tel:${phones[d.name]}`}
@@ -214,59 +198,6 @@ export default function Distributors() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Notify Dialog */}
-      <Dialog open={!!notifyDialog} onOpenChange={() => setNotifyDialog(null)}>
-        <DialogContent className="sm:max-w-[420px]" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <MessageSquareText className="w-4 h-4 text-sky-600" />
-              إرسال إشعار — {notifyDialog?.name}
-            </DialogTitle>
-            <DialogDescription>
-              {notifyDialog?.phone ? (
-                <span className="flex items-center gap-1.5 text-slate-500 text-xs mt-1">
-                  <Phone className="w-3 h-3 text-emerald-500" />
-                  <span dir="ltr">{notifyDialog.phone}</span>
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 text-amber-600 text-xs mt-1">
-                  <Phone className="w-3 h-3" />
-                  لم يُضف رقم جوال —{' '}
-                  <Link to="/settings" className="underline font-bold hover:text-amber-700" onClick={() => setNotifyDialog(null)}>
-                    أضفه من الإعدادات
-                  </Link>
-                </span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm text-slate-700 leading-relaxed whitespace-pre-line min-h-[80px]">
-            {notifyDialog?.msg}
-          </div>
-          <div className="space-y-2 pt-1">
-            <button
-              onClick={handleNotifyWhatsApp}
-              disabled={!notifyDialog?.phone}
-              className={`w-full flex items-center justify-center gap-2 rounded-xl font-bold py-3 text-sm transition-colors ${notifyDialog?.phone ? 'bg-[#25D366] hover:bg-[#1ebe5d] text-white' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
-            >
-              <MessageCircle className="w-4 h-4" /> واتساب
-            </button>
-            <button
-              onClick={handleNotifySMS}
-              disabled={!notifyDialog?.phone}
-              className={`w-full flex items-center justify-center gap-2 rounded-xl font-bold py-3 text-sm transition-colors ${notifyDialog?.phone ? 'bg-sky-500 hover:bg-sky-600 text-white' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
-            >
-              <MessageSquare className="w-4 h-4" /> SMS
-            </button>
-            <button
-              onClick={handleNotifyCopy}
-              className={`w-full flex items-center justify-center gap-2 rounded-xl border font-bold py-2.5 text-sm transition-colors ${copied ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-            >
-              {copied ? <><CheckCircle2 className="w-4 h-4" /> تم النسخ!</> : <><Copy className="w-4 h-4" /> نسخ الرسالة</>}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
         <DialogContent className="sm:max-w-[480px]">

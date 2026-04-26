@@ -1,0 +1,4 @@
+/* App container: no global text-align center (RTL flows naturally) */
+.App {
+  min-height: 100vh;
+}

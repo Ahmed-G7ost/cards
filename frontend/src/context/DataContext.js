@@ -29,11 +29,9 @@ const defaultSettings = {
   excluded: [], // موزعون مستثنون من إجمالي الشبكة
 };
 
-const DEFAULT_INTERNET_MSG = `السلام عليكم ورحمة الله،\nنُعلمكم باستلام طردة الفروخ الخاصة بكم بتاريخ {DATE}.\nالعدد: {QTY} فرخ | النوع: {TYPE}\nالرصيد السابق: {OLD} ₪ | السعر الإجمالي: {TOTAL} ₪ | الرصيد المستحق: {REMAIN} ₪\nشركة Live Net لخدمات الإنترنت 🌐`;
+const DEFAULT_INTERNET_MSG = `السلام عليكم ورحمة الله،\nنُعلمكم باستلام طردة الفروخ الخاصة بكم بتاريخ {DATE}.\nالعدد: {QTY} فرخ | النوع: {TYPE}\nالسعر الإجمالي: {TOTAL} ₪ | الرصيد المستحق: {REMAIN} ₪\nشركة Live Net لخدمات الإنترنت 🌐`;
 
-const DEFAULT_PAYMENT_MSG = `السلام عليكم ورحمة الله،\nتم استلام دفعتكم بتاريخ {DATE} وقيمتها {PAID} ₪.\nالرصيد السابق: {OLD} ₪ | الرصيد المتبقي: {REMAIN} ₪\nشكراً لتعاملكم معنا 🙏\nشركة Live Net لخدمات الإنترنت`;
-
-const DEFAULT_NOTIFY_MSG = `مرحباً {NAME}، رصيدك الحالي: {REMAIN} ₪\nشركة Live Net لخدمات الإنترنت 🌐`;
+const DEFAULT_PAYMENT_MSG = `السلام عليكم ورحمة الله،\nتم استلام دفعتكم بتاريخ {DATE} وقيمتها {PAID} ₪.\nالرصيد المتبقي: {REMAIN} ₪\nشكراً لتعاملكم معنا 🙏\nشركة Live Net لخدمات الإنترنت`;
 
 export function DataProvider({ children }) {
   const [records, setRecords] = useState([]);
@@ -55,7 +53,6 @@ export function DataProvider({ children }) {
   const [phones, setPhones] = useState({});
   const [internetMsg, setInternetMsg] = useState(DEFAULT_INTERNET_MSG);
   const [paymentMsg, setPaymentMsg] = useState(DEFAULT_PAYMENT_MSG);
-  const [notifyMsg, setNotifyMsg] = useState(DEFAULT_NOTIFY_MSG);
   const [notifications, setNotifications] = useState([]);
 
   // Persist settings locally (they are per-device UI settings)
@@ -118,7 +115,6 @@ export function DataProvider({ children }) {
       if (val) {
         if (val.internetMsg) setInternetMsg(val.internetMsg);
         if (val.paymentMsg) setPaymentMsg(val.paymentMsg);
-        if (val.notifyMsg) setNotifyMsg(val.notifyMsg);
       }
     });
 
@@ -258,7 +254,6 @@ export function DataProvider({ children }) {
     await dbSet(dbRef(db, 'config/messages'), msgs);
     if (msgs.internetMsg) setInternetMsg(msgs.internetMsg);
     if (msgs.paymentMsg) setPaymentMsg(msgs.paymentMsg);
-    if (msgs.notifyMsg) setNotifyMsg(msgs.notifyMsg);
   }
 
   // ===== إضافة إشعار في Firebase =====
@@ -369,8 +364,6 @@ export function DataProvider({ children }) {
     saveMessages,
     DEFAULT_INTERNET_MSG,
     DEFAULT_PAYMENT_MSG,
-    DEFAULT_NOTIFY_MSG,
-    notifyMsg,
     // Notifications
     notifications,
     addNotification,

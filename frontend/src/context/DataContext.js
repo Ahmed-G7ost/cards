@@ -289,51 +289,77 @@ export function DataProvider({ children }) {
   // ===== Derived =====
 
   /**
-   * يبني قائمة الموزعين مع رصيد الدين الحقيقي لكل موزع.
+   * يبني قائمة الموزعين مع رصيد الدين المُعاد حسابه من الصفر لكل موزع.
    *
-   * منطق الحساب:
-   * - يُرتَّب كل سجل زمنياً تصاعدياً (من الأقدم للأحدث).
-   * - لكل موزع، تُحسب المستحقات بصورة تراكمية:
-   *     رصيد جديد = رصيد سابق + (قيمة الطبعة إن وجدت) - (الدفعة المدفوعة)
-   * - الرصيد النهائي هو `remain` من آخر سجل زمنياً للموزع،
-   *   وهو القيمة المحفوظة فعلياً عند كل عملية في قاعدة البيانات.
-   * - نعتمد على `remain` المحفوظ مباشرةً لأنه يمثل الحالة الصحيحة
-   *   عند لحظة تسجيل كل عملية، وهو ما يضمن دقة تاريخية كاملة.
+   * لماذا نُعيد الحساب من الصفر ولا نعتمد على `remain` المحفوظ؟
+   * - عند حذف أي سجل قديم، تبقى قيم `remain` في السجلات اللاحقة له
+   *   مبنيةً على الحالة القديمة ولا تعكس الحذف → الرصيد يصبح خاطئاً.
+   * - الحل: نتجاهل `remain` المخزّن تماماً ونعيد البناء التراكمي
+   *   من السجلات الحية الموجودة فعلاً في قاعدة البيانات.
+   *
+   * خوارزمية الحساب التراكمي لكل موزع:
+   *   1. نرتب سجلاته ترتيباً زمنياً تصاعدياً (الأقدم أولاً).
+   *   2. نبدأ بـ runningBalance = 0
+   *   3. لكل سجل:
+   *        - إن كان طبعة  → runningBalance += qty × price
+   *        - إن كان دفعة  → runningBalance -= paid
+   *   4. الرصيد النهائي بعد المرور على جميع السجلات = الدين الحقيقي الحالي.
+   *
+   * هذا يضمن أن أي حذف أو تعديل ينعكس فوراً على الرصيد الظاهر في كل مكان.
    */
   const distributors = useMemo(() => {
-    // نفصل سجلات كل موزع ونرتبها زمنياً (الأحدث أولاً للحصول على آخر رصيد)
-    const distributorMap = new Map();
-
-    // المرور الأول: نحصل على آخر سجل لكل موزع (يحمل الرصيد الحالي الصحيح)
-    const recordsByDistributor = new Map();
+    // نجمع سجلات كل موزع في Map منفصلة
+    const recordsPerDistributor = new Map();
     records.forEach((r) => {
-      const existing = recordsByDistributor.get(r.name);
-      if (!existing || r.ts > existing.ts) {
-        recordsByDistributor.set(r.name, r);
+      if (!recordsPerDistributor.has(r.name)) {
+        recordsPerDistributor.set(r.name, []);
       }
+      recordsPerDistributor.get(r.name).push(r);
     });
 
-    // المرور الثاني: نحسب إجماليات كل موزع
-    const countMap = new Map();
-    records.forEach((r) => {
-      countMap.set(r.name, (countMap.get(r.name) || 0) + 1);
-    });
+    const result = [];
 
-    // بناء قائمة الموزعين النهائية
-    recordsByDistributor.forEach((latestRecord, name) => {
-      const currentDebt = Number(latestRecord.remain) || 0;
-      distributorMap.set(name, {
+    recordsPerDistributor.forEach((distRecords, name) => {
+      // ترتيب تصاعدي بالزمن (الأقدم أولاً) لضمان صحة التراكم
+      distRecords.sort((a, b) => a.ts - b.ts);
+
+      let runningBalance = 0;
+      let lastDate = '';
+      let lastTs = 0;
+
+      distRecords.forEach((r) => {
+        const isBatchRecord = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
+        const qty       = Number(r.qty)   || 0;
+        const unitPrice = Number(r.price) || 0;
+        const paidAmt   = Number(r.paid)  || 0;
+
+        if (isBatchRecord) {
+          // طبعة توزيع: تُضاف قيمتها كاملةً للرصيد المستحق
+          runningBalance += qty * unitPrice;
+        }
+        // أي مبلغ مدفوع (سواء في سجل طبعة أو دفعة مستقلة) يُخصم من الرصيد
+        if (paidAmt > 0) {
+          runningBalance -= paidAmt;
+        }
+
+        // نتتبع آخر سجل زمنياً لعرض التاريخ في الواجهة
+        if (r.ts >= lastTs) {
+          lastTs   = r.ts;
+          lastDate = r.date;
+        }
+      });
+
+      result.push({
         name,
-        // الرصيد المستحق الحالي = remain من آخر سجل زمنياً
-        debt: currentDebt,
-        lastDate: latestRecord.date,
-        lastTs: latestRecord.ts,
-        recordsCount: countMap.get(name) || 0,
+        debt:         Math.round(runningBalance), // الرصيد الحقيقي المُعاد حسابه
+        lastDate,
+        lastTs,
+        recordsCount: distRecords.length,
       });
     });
 
     // ترتيب تنازلي حسب حجم الدين
-    return Array.from(distributorMap.values()).sort((a, b) => b.debt - a.debt);
+    return result.sort((a, b) => b.debt - a.debt);
   }, [records]);
 
   /**

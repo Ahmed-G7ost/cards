@@ -56,12 +56,31 @@ export default function OperationForm({ editing, onDone }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
-  // Old debt derived from last record of the selected distributor (excluding the one being edited)
+  /**
+   * الدين السابق للموزع المختار — يُحسب تراكمياً من الصفر.
+   * نتجاهل قيمة `remain` المخزّنة لأنها تصبح خاطئة عند حذف أي سجل قديم.
+   * عند التعديل نستثني السجل الحالي من الحساب حتى لا يُحتسب مرتين.
+   */
   const oldDebt = useMemo(() => {
     if (!name) return 0;
-    const pool = editing ? records.filter((r) => r.id !== editing.id) : records;
-    const list = pool.filter((r) => r.name === name).sort((a, b) => b.ts - a.ts);
-    return list.length ? Number(list[0].remain) || 0 : 0;
+    const pool = editing
+      ? records.filter((r) => r.id !== editing.id)
+      : records;
+    const distRecords = pool
+      .filter((r) => r.name === name)
+      .sort((a, b) => a.ts - b.ts);
+    let runningBalance = 0;
+    distRecords.forEach((r) => {
+      const isBatchRecord = r.opType === '\u0637\u0628\u0639\u0629' || (r.type && r.type.includes('\u0637\u0628\u0639\u0629'));
+      if (isBatchRecord) {
+        runningBalance += (Number(r.qty) || 0) * (Number(r.price) || 0);
+      }
+      const paid = Number(r.paid) || 0;
+      if (paid > 0) {
+        runningBalance -= paid;
+      }
+    });
+    return Math.round(runningBalance);
   }, [name, records, editing]);
 
   const qtyNum = Number(qty) || 0;

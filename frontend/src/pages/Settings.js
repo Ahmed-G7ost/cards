@@ -6,7 +6,7 @@ import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
 import { Textarea } from '../components/ui/textarea';
-import { Settings2, DollarSign, EyeOff, Database, AlertTriangle, Phone, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { Settings2, DollarSign, EyeOff, Database, AlertTriangle, Phone, MessageSquare, CheckCircle2, CreditCard } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,13 +20,19 @@ import {
 import { toast } from 'sonner';
 
 export default function Settings() {
-  const { settings, setSettings, distributors, resetData,
+  const { settings, setSettings, distributors, resetData, saveDistributorInitialDebts,
     phones: fbPhones, savePhones, internetMsg: fbInternetMsg, paymentMsg: fbPaymentMsg,
     notifMsg: fbNotifMsg, saveMessages, DEFAULT_INTERNET_MSG, DEFAULT_PAYMENT_MSG, DEFAULT_NOTIF_MSG } = useData();
   const [cost, setCost] = useState(settings.cost);
   const [defaultPrice, setDefaultPrice] = useState(settings.defaultPrice);
   const [prices, setPrices] = useState(settings.prices || { '8 ساعات': 70, '10 ساعات': 90, '24 ساعة': 150 });
   const [confirmReset, setConfirmReset] = useState(false);
+
+  // الديون القديمة
+  const [initialDebts, setInitialDebts] = useState({});
+  const [debtsSaved, setDebtsSaved] = useState(false);
+  const [debtsDistributorName, setDebtsDistributorName] = useState('');
+  const [debtsDistributorAmount, setDebtsDistributorAmount] = useState('');
 
   const [phones, setPhones] = useState({});
   const [phonesSaved, setPhonesSaved] = useState(false);
@@ -76,6 +82,37 @@ export default function Settings() {
       setPhonesSaved(true);
       toast.success('تم حفظ أرقام الجوال في Firebase ☁️');
       setTimeout(() => setPhonesSaved(false), 2000);
+    } catch (err) {
+      toast.error('فشل الحفظ: ' + (err?.message || ''));
+    }
+  }
+
+  function addDebtEntry() {
+    const name = debtsDistributorName.trim();
+    const amount = Number(debtsDistributorAmount);
+    if (!name) { toast.error('أدخل اسم الموزع'); return; }
+    if (!amount || amount <= 0) { toast.error('أدخل مبلغ دين صحيح'); return; }
+    setInitialDebts((prev) => ({ ...prev, [name]: amount }));
+    setDebtsDistributorName('');
+    setDebtsDistributorAmount('');
+  }
+
+  function removeDebtEntry(name) {
+    setInitialDebts((prev) => {
+      const copy = { ...prev };
+      delete copy[name];
+      return copy;
+    });
+  }
+
+  async function saveInitialDebts_fn() {
+    if (Object.keys(initialDebts).length === 0) { toast.error('أضف دينًا واحدًا على الأقل'); return; }
+    try {
+      const count = await saveDistributorInitialDebts(initialDebts);
+      setDebtsSaved(true);
+      toast.success(`تم تسجيل الديون القديمة لـ ${count} موزع ☁️`);
+      setInitialDebts({});
+      setTimeout(() => setDebtsSaved(false), 2000);
     } catch (err) {
       toast.error('فشل الحفظ: ' + (err?.message || ''));
     }
@@ -324,6 +361,102 @@ export default function Settings() {
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="card-soft border-0">
+        <CardHeader>
+          <CardTitle className="text-lg font-extrabold flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 flex items-center justify-center">
+              <CreditCard className="w-4 h-4" />
+            </div>
+            تسجيل ديون قديمة على الموزعين
+          </CardTitle>
+          <p className="text-xs text-slate-500 mt-1">لو صفّرت البيانات وأردت إدخال الديون المتبقية من الفترة السابقة، أضفها هنا وسيتم تسجيلها كرصيد منقول</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* إدخال موزع جديد */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">اسم الموزع</Label>
+              <Input
+                placeholder="اسم الموزع..."
+                value={debtsDistributorName}
+                onChange={(e) => setDebtsDistributorName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addDebtEntry()}
+                className="h-10 bg-slate-50 dark:bg-slate-800 rounded-xl"
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">مبلغ الدين (₪)</Label>
+              <div className="relative">
+                <DollarSign className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={debtsDistributorAmount}
+                  onChange={(e) => setDebtsDistributorAmount(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addDebtEntry()}
+                  className="pr-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-xl"
+                />
+              </div>
+            </div>
+            <div className="flex items-end">
+              <Button onClick={addDebtEntry} className="w-full h-10 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold">
+                + إضافة
+              </Button>
+            </div>
+          </div>
+
+          {/* قائمة الديون المدخلة */}
+          {Object.keys(initialDebts).length > 0 && (
+            <div className="rounded-xl border border-orange-100 dark:border-orange-800 overflow-hidden">
+              <div className="bg-orange-50 dark:bg-orange-900/20 px-4 py-2 text-xs font-bold text-orange-700 dark:text-orange-400 flex justify-between">
+                <span>الموزع</span>
+                <span>المبلغ</span>
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                {Object.entries(initialDebts).map(([name, amount]) => (
+                  <div key={name} className="flex items-center justify-between px-4 py-2.5 bg-white dark:bg-slate-800">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => removeDebtEntry(name)}
+                        className="w-5 h-5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center hover:bg-rose-200 transition-colors text-xs font-bold"
+                      >
+                        ×
+                      </button>
+                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{name}</span>
+                    </div>
+                    <span className="text-sm font-bold text-orange-700 dark:text-orange-400 num-ar">{Number(amount).toLocaleString()} ₪</span>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-orange-50/60 dark:bg-orange-900/10 px-4 py-2 flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">الإجمالي</span>
+                <span className="text-sm font-extrabold text-orange-700 dark:text-orange-400 num-ar">
+                  {Object.values(initialDebts).reduce((s, v) => s + Number(v), 0).toLocaleString()} ₪
+                </span>
+              </div>
+            </div>
+          )}
+
+          {Object.keys(initialDebts).length === 0 && (
+            <div className="py-6 text-center text-slate-400 text-sm border border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
+              لم تُضَف ديون بعد — أدخل اسم الموزع والمبلغ ثم اضغط "إضافة"
+            </div>
+          )}
+
+          {Object.keys(initialDebts).length > 0 && (
+            <Button
+              onClick={saveInitialDebts_fn}
+              className={`rounded-xl font-bold h-10 px-6 ${debtsSaved ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-orange-600 hover:bg-orange-700'} text-white`}
+            >
+              {debtsSaved
+                ? <><CheckCircle2 className="w-4 h-4 ml-2" /> تم التسجيل</>
+                : <><CreditCard className="w-4 h-4 ml-2" /> تسجيل الديون القديمة</>
+              }
+            </Button>
+          )}
         </CardContent>
       </Card>
 

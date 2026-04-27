@@ -247,6 +247,33 @@ export function DataProvider({ children }) {
     await dbSet(dbRef(db, 'distributors'), null);
   }
 
+  // ===== تسجيل ديون قديمة على الموزعين (بعد التصفير) =====
+  async function saveDistributorInitialDebts(debtsMap) {
+    // debtsMap: { [distributorName]: debtAmount }
+    const updates = {};
+    const now = Date.now();
+    Object.entries(debtsMap).forEach(([name, amount]) => {
+      if (!amount || Number(amount) <= 0) return;
+      const newKey = push(dbRef(db, 'distributors')).key;
+      updates[`distributors/${newKey}`] = {
+        name,
+        opType: 'دين سابق',
+        type: 'دين سابق',
+        qty: 0,
+        price: 0,
+        paid: 0,
+        remain: Number(amount),
+        date: new Date().toISOString().split('T')[0],
+        ts: now,
+        note: 'رصيد منقول من فترة سابقة',
+      };
+    });
+    if (Object.keys(updates).length > 0) {
+      await update(dbRef(db), updates);
+    }
+    return Object.keys(updates).length;
+  }
+
   // ===== حفظ أرقام الهواتف في Firebase =====
   async function savePhones(phonesData) {
     await dbSet(dbRef(db, 'config/phones'), phonesData);
@@ -287,134 +314,53 @@ export function DataProvider({ children }) {
   }
 
   // ===== Derived =====
-
-  /**
-   * يبني قائمة الموزعين مع رصيد الدين المُعاد حسابه من الصفر لكل موزع.
-   *
-   * لماذا نُعيد الحساب من الصفر ولا نعتمد على `remain` المحفوظ؟
-   * - عند حذف أي سجل قديم، تبقى قيم `remain` في السجلات اللاحقة له
-   *   مبنيةً على الحالة القديمة ولا تعكس الحذف → الرصيد يصبح خاطئاً.
-   * - الحل: نتجاهل `remain` المخزّن تماماً ونعيد البناء التراكمي
-   *   من السجلات الحية الموجودة فعلاً في قاعدة البيانات.
-   *
-   * خوارزمية الحساب التراكمي لكل موزع:
-   *   1. نرتب سجلاته ترتيباً زمنياً تصاعدياً (الأقدم أولاً).
-   *   2. نبدأ بـ runningBalance = 0
-   *   3. لكل سجل:
-   *        - إن كان طبعة  → runningBalance += qty × price
-   *        - إن كان دفعة  → runningBalance -= paid
-   *   4. الرصيد النهائي بعد المرور على جميع السجلات = الدين الحقيقي الحالي.
-   *
-   * هذا يضمن أن أي حذف أو تعديل ينعكس فوراً على الرصيد الظاهر في كل مكان.
-   */
   const distributors = useMemo(() => {
-    // نجمع سجلات كل موزع في Map منفصلة
-    const recordsPerDistributor = new Map();
-    records.forEach((r) => {
-      if (!recordsPerDistributor.has(r.name)) {
-        recordsPerDistributor.set(r.name, []);
+    const map = new Map();
+    const sorted = [...records].sort((a, b) => b.ts - a.ts);
+    sorted.forEach((r) => {
+      if (!map.has(r.name)) {
+        map.set(r.name, {
+          name: r.name,
+          debt: Number(r.remain) || 0,
+          lastDate: r.date,
+          lastTs: r.ts,
+          recordsCount: 0,
+        });
       }
-      recordsPerDistributor.get(r.name).push(r);
     });
-
-    const result = [];
-
-    recordsPerDistributor.forEach((distRecords, name) => {
-      // ترتيب تصاعدي بالزمن (الأقدم أولاً) لضمان صحة التراكم
-      distRecords.sort((a, b) => a.ts - b.ts);
-
-      let runningBalance = 0;
-      let lastDate = '';
-      let lastTs = 0;
-
-      distRecords.forEach((r) => {
-        const isBatchRecord = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
-        const qty       = Number(r.qty)   || 0;
-        const unitPrice = Number(r.price) || 0;
-        const paidAmt   = Number(r.paid)  || 0;
-
-        if (isBatchRecord) {
-          // طبعة توزيع: تُضاف قيمتها كاملةً للرصيد المستحق
-          runningBalance += qty * unitPrice;
-        }
-        // أي مبلغ مدفوع (سواء في سجل طبعة أو دفعة مستقلة) يُخصم من الرصيد
-        if (paidAmt > 0) {
-          runningBalance -= paidAmt;
-        }
-
-        // نتتبع آخر سجل زمنياً لعرض التاريخ في الواجهة
-        if (r.ts >= lastTs) {
-          lastTs   = r.ts;
-          lastDate = r.date;
-        }
-      });
-
-      result.push({
-        name,
-        debt:         Math.round(runningBalance), // الرصيد الحقيقي المُعاد حسابه
-        lastDate,
-        lastTs,
-        recordsCount: distRecords.length,
-      });
+    records.forEach((r) => {
+      const d = map.get(r.name);
+      if (d) d.recordsCount++;
     });
-
-    // ترتيب تنازلي حسب حجم الدين
-    return result.sort((a, b) => b.debt - a.debt);
+    return Array.from(map.values()).sort((a, b) => b.debt - a.debt);
   }, [records]);
 
-  /**
-   * يحسب مؤشرات الأداء المالي الرئيسية للشبكة.
-   *
-   * تعريفات المؤشرات:
-   * - totalSales   : إجمالي قيمة الفروخ الموزَّعة (الكمية × السعر) من جميع طبعات التوزيع.
-   * - totalChicks  : إجمالي عدد الفروخ الموزَّعة عبر جميع الطبعات.
-   * - totalPaid    : إجمالي المبالغ المحصَّلة من الموزعين (جميع الدفعات المسجَّلة).
-   * - netProfit    : صافي الربح = إجمالي المحصَّل - (الكمية المقابلة للمبلغ المحصَّل × تكلفة الفرخ).
-   *                  الفكرة: لكل شيكل محصَّل، نحسب عدد الفروخ التي دفع ثمنها الموزع،
-   *                  ثم نطرح تكلفة تلك الفروخ للحصول على الهامش الصافي.
-   * - networkDebt  : إجمالي الديون المستحقة على الشبكة (باستثناء الموزعين المستثنين في الإعدادات).
-   *                  يُحتسب فقط الرصيد الموجب (دين فعلي)؛ الأرصدة السالبة تُهمل.
-   */
   const metrics = useMemo(() => {
-    const costPerUnit = Number(settings.cost) || 25;
-
-    let totalSales = 0;   // إجمالي المبيعات بالشيكل
-    let totalChicks = 0;  // إجمالي عدد الفروخ
-    let totalPaid = 0;    // إجمالي المحصَّل
-    let netProfit = 0;    // صافي الربح
+    const cost = settings.cost || 50;
+    let totalSales = 0;
+    let netProfit = 0;
+    let totalChicks = 0;
+    let totalPaid = 0;
 
     records.forEach((r) => {
-      const isBatchRecord = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
-      const qty = Number(r.qty) || 0;
-      const unitPrice = Number(r.price) || 0;
-      const paidAmount = Number(r.paid) || 0;
-
-      // طبعة توزيع: نضيف قيمتها للمبيعات وعدد الفروخ
-      if (isBatchRecord && qty > 0 && unitPrice > 0) {
-        totalSales += qty * unitPrice;
+      if (r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'))) {
+        const qty = Number(r.qty) || 0;
+        const price = Number(r.price) || 0;
+        totalSales += qty * price;
         totalChicks += qty;
       }
-
-      // أي مبلغ مدفوع (سواء مع طبعة أو دفعة مستقلة)
-      if (paidAmount > 0) {
-        totalPaid += paidAmount;
-
-        // صافي الربح على هذه الدفعة:
-        // نحدد سعر الوحدة المرجعي (إما سعر الطبعة، أو السعر الافتراضي للإعدادات)
-        const referencePrice = unitPrice > 0 ? unitPrice : (Number(settings.defaultPrice) || 90);
-        // عدد الفروخ التي يغطيها هذا المبلغ المدفوع
-        const coveredQty = paidAmount / referencePrice;
-        // الهامش = (سعر البيع - تكلفة الشراء) × الكمية المغطاة
-        netProfit += coveredQty * (referencePrice - costPerUnit);
+      const paid = Number(r.paid) || 0;
+      const price = Number(r.price) || 90;
+      if (paid > 0 && price > 0) {
+        const earnedQty = paid / price;
+        netProfit += earnedQty * (price - cost);
       }
+      totalPaid += paid;
     });
 
-    // ديون الشبكة: مجموع الأرصدة الموجبة فقط، مع استثناء الموزعين المحددين في الإعدادات
-    const excludedSet = new Set(settings.excluded || []);
-    const networkDebt = distributors.reduce((sum, d) => {
-      if (excludedSet.has(d.name)) return sum;
-      return sum + (d.debt > 0 ? d.debt : 0);
-    }, 0);
+    const networkDebt = distributors
+      .filter((d) => !settings.excluded.includes(d.name))
+      .reduce((sum, d) => sum + (d.debt > 0 ? d.debt : 0), 0);
 
     return {
       totalSales: Math.round(totalSales),
@@ -438,6 +384,7 @@ export function DataProvider({ children }) {
     bulkRenameDistributor,
     restoreFromBackup,
     resetData,
+    saveDistributorInitialDebts,
     distributors,
     metrics,
     settings,

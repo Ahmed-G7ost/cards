@@ -4,6 +4,8 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
+  createUserWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth';
 import {
   ref as dbRef,
@@ -164,6 +166,51 @@ export function DataProvider({ children }) {
     try {
       await signOut(auth);
     } catch (_) {}
+  }
+
+  // ===== إنشاء حساب مستخدم جديد (المسؤول فقط) =====
+  async function createUser(email, password, displayName) {
+    try {
+      // استخدام تطبيق Firebase ثانوي حتى لا يؤثر على جلسة المسؤول الحالية
+      const { initializeApp } = await import('firebase/app');
+      const { getAuth: getAuthSecondary, createUserWithEmailAndPassword: createUserFn, updateProfile: updateProfileFn, signOut: signOutSecondary } = await import('firebase/auth');
+      const { firebaseApp } = await import('../firebase');
+
+      const secondaryAppName = `secondary-${Date.now()}`;
+      const secondaryApp = initializeApp(firebaseApp.options, secondaryAppName);
+      const secondaryAuth = getAuthSecondary(secondaryApp);
+
+      const userCredential = await createUserFn(secondaryAuth, email, password);
+      if (displayName) {
+        await updateProfileFn(userCredential.user, { displayName });
+      }
+      await signOutSecondary(secondaryAuth);
+
+      // تسجيل العملية في logs
+      try {
+        const logsRef = dbRef(db, 'system_logs');
+        push(logsRef, {
+          action: 'إنشاء مستخدم',
+          details: { email, displayName },
+          user: auth_?.email || 'unknown',
+          ts: Date.now(),
+        });
+      } catch (_) {}
+
+      return { ok: true };
+    } catch (err) {
+      let msg = 'فشل إنشاء الحساب';
+      if (err?.code === 'auth/email-already-in-use') {
+        msg = 'البريد الإلكتروني مستخدم مسبقاً';
+      } else if (err?.code === 'auth/invalid-email') {
+        msg = 'صيغة البريد الإلكتروني غير صحيحة';
+      } else if (err?.code === 'auth/weak-password') {
+        msg = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+      } else if (err?.message) {
+        msg = err.message;
+      }
+      return { ok: false, message: msg };
+    }
   }
 
   // ===== CRUD =====
@@ -440,6 +487,7 @@ export function DataProvider({ children }) {
     dataLoading,
     login,
     logout,
+    createUser,
     addRecord,
     updateRecord,
     deleteRecord,

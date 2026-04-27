@@ -6,7 +6,7 @@ import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
 import { Textarea } from '../components/ui/textarea';
-import { Settings2, DollarSign, EyeOff, Database, AlertTriangle, Phone, MessageSquare, CheckCircle2, CreditCard } from 'lucide-react';
+import { Settings2, DollarSign, EyeOff, Database, AlertTriangle, Phone, MessageSquare, CheckCircle2, CreditCard, UserPlus, User, KeyRound } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +22,8 @@ import { toast } from 'sonner';
 export default function Settings() {
   const { settings, setSettings, distributors, resetData, saveDistributorInitialDebts,
     phones: fbPhones, savePhones, internetMsg: fbInternetMsg, paymentMsg: fbPaymentMsg,
-    notifMsg: fbNotifMsg, saveMessages, DEFAULT_INTERNET_MSG, DEFAULT_PAYMENT_MSG, DEFAULT_NOTIF_MSG } = useData();
+    notifMsg: fbNotifMsg, saveMessages, DEFAULT_INTERNET_MSG, DEFAULT_PAYMENT_MSG, DEFAULT_NOTIF_MSG,
+    createUser, auth } = useData();
   const [cost, setCost] = useState(settings.cost);
   const [defaultPrice, setDefaultPrice] = useState(settings.defaultPrice);
   const [prices, setPrices] = useState(settings.prices || { '8 ساعات': 70, '10 ساعات': 90, '24 ساعة': 150 });
@@ -41,6 +42,13 @@ export default function Settings() {
   const [paymentMsg, setPaymentMsg] = useState(DEFAULT_PAYMENT_MSG);
   const [notifMsg, setNotifMsg] = useState(DEFAULT_NOTIF_MSG);
   const [msgSaved, setMsgSaved] = useState(false);
+
+  // إنشاء حساب جديد
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserShowPass, setNewUserShowPass] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
 
   // مزامنة الأرقام والرسائل من Firebase عند تحميلها
   React.useEffect(() => {
@@ -461,6 +469,101 @@ export default function Settings() {
       </Card>
 
       <Card className="card-soft border-0">
+        <CardHeader>
+          <CardTitle className="text-lg font-extrabold flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 flex items-center justify-center">
+              <UserPlus className="w-4 h-4" />
+            </div>
+            إنشاء حساب مستخدم جديد
+          </CardTitle>
+          <p className="text-xs text-slate-500 mt-1">فقط المسؤول يستطيع إنشاء حسابات جديدة. يبقى المسؤول مسجلاً دخوله بعد الإنشاء مباشرة.</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5" /> الاسم (اختياري)
+              </Label>
+              <Input
+                placeholder="اسم المستخدم..."
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+                className="h-10 bg-slate-50 dark:bg-slate-800 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                <span className="text-indigo-500">@</span> البريد الإلكتروني
+              </Label>
+              <Input
+                type="email"
+                placeholder="user@livenet.ps"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                className="h-10 bg-slate-50 dark:bg-slate-800 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5" /> كلمة المرور
+              </Label>
+              <div className="relative">
+                <Input
+                  type={newUserShowPass ? 'text' : 'password'}
+                  placeholder="6 أحرف على الأقل..."
+                  value={newUserPassword}
+                  onChange={(e) => setNewUserPassword(e.target.value)}
+                  className="h-10 bg-slate-50 dark:bg-slate-800 rounded-xl pl-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setNewUserShowPass(s => !s)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                >
+                  {newUserShowPass
+                    ? <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            onClick={async () => {
+              if (!newUserEmail.trim()) { toast.error('أدخل البريد الإلكتروني'); return; }
+              if (newUserPassword.length < 6) { toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل'); return; }
+              setCreatingUser(true);
+              const res = await createUser(newUserEmail.trim(), newUserPassword, newUserName.trim() || undefined);
+              setCreatingUser(false);
+              if (res.ok) {
+                toast.success(`✅ تم إنشاء الحساب بنجاح: ${newUserEmail.trim()}`);
+                setNewUserEmail('');
+                setNewUserPassword('');
+                setNewUserName('');
+              } else {
+                toast.error(res.message);
+              }
+            }}
+            disabled={creatingUser}
+            className="rounded-xl font-bold h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
+            {creatingUser
+              ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin ml-2 inline-block" /> جارٍ الإنشاء...</>
+              : <><UserPlus className="w-4 h-4 ml-2" /> إنشاء الحساب</>
+            }
+          </Button>
+
+          <div className="rounded-xl bg-indigo-50/60 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 p-3 flex items-start gap-2">
+            <div className="text-indigo-500 text-lg">ℹ️</div>
+            <p className="text-xs text-indigo-700 dark:text-indigo-400 leading-relaxed">
+              بعد إنشاء الحساب، يمكن للمستخدم الجديد تسجيل الدخول بالبريد وكلمة المرور التي أدخلتها. أنت كمسؤول ستبقى مسجلاً دخولك.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+            <Card className="card-soft border-0">
         <CardHeader>
           <CardTitle className="text-lg font-extrabold flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 flex items-center justify-center">

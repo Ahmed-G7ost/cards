@@ -289,23 +289,52 @@ export function DataProvider({ children }) {
   // ===== Derived =====
   const distributors = useMemo(() => {
     const map = new Map();
-    const sorted = [...records].sort((a, b) => b.ts - a.ts);
-    sorted.forEach((r) => {
+
+    // Group all records by distributor name
+    records.forEach((r) => {
       if (!map.has(r.name)) {
         map.set(r.name, {
           name: r.name,
-          debt: Number(r.remain) || 0,
-          lastDate: r.date,
-          lastTs: r.ts,
-          recordsCount: 0,
+          ops: [],
         });
       }
+      map.get(r.name).ops.push(r);
     });
-    records.forEach((r) => {
-      const d = map.get(r.name);
-      if (d) d.recordsCount++;
+
+    const result = [];
+    map.forEach(({ name, ops }) => {
+      // Sort operations by timestamp ascending (oldest first) to replay in order
+      const sorted = [...ops].sort((a, b) => a.ts - b.ts);
+
+      // Compute real debt by replaying all operations in chronological order:
+      // - طبعة (batch/receive): adds qty * price to the debt
+      // - دفعة (payment): subtracts the paid amount from the debt
+      let debt = 0;
+      sorted.forEach((r) => {
+        const isBatch = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
+        if (isBatch) {
+          const qty = Number(r.qty) || 0;
+          const price = Number(r.price) || 0;
+          debt += qty * price;
+        } else {
+          const paid = Number(r.paid) || 0;
+          debt -= paid;
+        }
+      });
+
+      // Get the most recent record for display metadata
+      const latest = [...ops].sort((a, b) => b.ts - a.ts)[0];
+
+      result.push({
+        name,
+        debt: Math.round(debt),
+        lastDate: latest?.date || '',
+        lastTs: latest?.ts || 0,
+        recordsCount: ops.length,
+      });
     });
-    return Array.from(map.values()).sort((a, b) => b.debt - a.debt);
+
+    return result.sort((a, b) => b.debt - a.debt);
   }, [records]);
 
   const metrics = useMemo(() => {

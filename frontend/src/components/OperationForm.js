@@ -56,12 +56,23 @@ export default function OperationForm({ editing, onDone }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
-  // Old debt derived from last record of the selected distributor (excluding the one being edited)
+  // Old debt computed by replaying all operations of this distributor in chronological order,
+  // excluding the record being edited (if any). This ensures deletion/editing of any record
+  // correctly recalculates the real balance.
   const oldDebt = useMemo(() => {
     if (!name) return 0;
     const pool = editing ? records.filter((r) => r.id !== editing.id) : records;
-    const list = pool.filter((r) => r.name === name).sort((a, b) => b.ts - a.ts);
-    return list.length ? Number(list[0].remain) || 0 : 0;
+    const ops = pool.filter((r) => r.name === name).sort((a, b) => a.ts - b.ts);
+    let debt = 0;
+    ops.forEach((r) => {
+      const isBatch = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
+      if (isBatch) {
+        debt += (Number(r.qty) || 0) * (Number(r.price) || 0);
+      } else {
+        debt -= Number(r.paid) || 0;
+      }
+    });
+    return Math.round(debt);
   }, [name, records, editing]);
 
   const qtyNum = Number(qty) || 0;

@@ -72,6 +72,38 @@ export default function TransactionsTable({ onEdit, hideFilters = false, nameFil
       .sort((a, b) => b.ts - a.ts);
   }, [records, filter.name, filter.from, filter.to]);
 
+  // Compute running balance for every record dynamically.
+  // For each record we replay all operations of that distributor up to (and including) that record,
+  // sorted by timestamp ascending, to get the true balance at that point in time.
+  const computedBalances = useMemo(() => {
+    // Build a per-distributor sorted list of all records (all records, not just filtered)
+    const byName = {};
+    records.forEach((r) => {
+      if (!byName[r.name]) byName[r.name] = [];
+      byName[r.name].push(r);
+    });
+    // Sort each distributor's ops by ts ascending
+    Object.keys(byName).forEach((name) => {
+      byName[name].sort((a, b) => a.ts - b.ts);
+    });
+
+    const balanceMap = {}; // id -> { old, remain }
+    Object.values(byName).forEach((ops) => {
+      let running = 0;
+      ops.forEach((r) => {
+        const isBatch = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
+        const oldVal = running;
+        if (isBatch) {
+          running += (Number(r.qty) || 0) * (Number(r.price) || 0);
+        } else {
+          running -= Number(r.paid) || 0;
+        }
+        balanceMap[r.id] = { old: Math.round(oldVal), remain: Math.round(running) };
+      });
+    });
+    return balanceMap;
+  }, [records]);
+
   const shown = data.slice(0, limit);
 
   // Build the message text for a record using settings templates
@@ -80,7 +112,9 @@ export default function TransactionsTable({ onEdit, hideFilters = false, nameFil
     const template = isBatch
       ? (internetMsg || DEFAULT_INTERNET_MSG)
       : (paymentMsg || DEFAULT_PAYMENT_MSG);
-    return buildMessage(template, r);
+    // Use computed remain if available, fall back to stored value
+    const computedRemain = computedBalances[r.id]?.remain ?? Number(r.remain);
+    return buildMessage(template, { ...r, remain: computedRemain });
   }
 
   function getPhone(name) {
@@ -196,9 +230,9 @@ export default function TransactionsTable({ onEdit, hideFilters = false, nameFil
                   </td>
                   <td className="px-4 py-3 text-center text-sm font-bold text-indigo-700 dark:text-indigo-400">{isBatch ? r.chickenType || '-' : '-'}</td>
                   <td className="px-4 py-3 text-center num-ar dark:text-slate-300">{isBatch ? r.qty : '-'}</td>
-                  <td className="px-4 py-3 text-center num-ar text-slate-700 dark:text-slate-400">{Number(r.old).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-center num-ar text-slate-700 dark:text-slate-400">{(computedBalances[r.id]?.old ?? Number(r.old)).toLocaleString()}</td>
                   <td className="px-4 py-3 text-center num-ar text-emerald-700 dark:text-emerald-400 font-bold">{Number(r.paid).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-center num-ar font-extrabold text-rose-600 dark:text-rose-400">{Number(r.remain).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-center num-ar font-extrabold text-rose-600 dark:text-rose-400">{(computedBalances[r.id]?.remain ?? Number(r.remain)).toLocaleString()}</td>
                   <td className="px-4 py-3 text-center text-xs text-slate-500 max-w-[160px] truncate">{r.note || '-'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-1.5">

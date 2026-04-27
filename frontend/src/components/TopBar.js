@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, User2, LogOut, Moon, Sun } from 'lucide-react';
+import { Bell, User2, LogOut, Moon, Sun, Menu } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useDarkMode } from '../context/DarkModeContext';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +14,7 @@ import {
 import { Badge } from './ui/badge';
 import { toast } from 'sonner';
 
-export default function TopBar({ title, subtitle, user, onLogout }) {
+export default function TopBar({ title, subtitle, user, onLogout, onMenuToggle }) {
   const { logout, metrics, notifications } = useData();
   const { dark, toggle } = useDarkMode();
   const navigate = useNavigate();
@@ -36,6 +36,15 @@ export default function TopBar({ title, subtitle, user, onLogout }) {
   return (
     <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-700/70">
       <div className="flex items-center gap-4 px-5 md:px-8 py-4">
+        {/* Hamburger - mobile only */}
+        <button
+          onClick={onMenuToggle}
+          className="md:hidden w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 shrink-0"
+          style={{ transition: 'background-color .2s' }}
+          title="القائمة"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-slate-100 truncate">{title}</h1>

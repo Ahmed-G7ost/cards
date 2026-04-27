@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
@@ -8,6 +8,7 @@ export default function Layout() {
   const { auth } = useData();
   const location = useLocation();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const pageTitleMap = {
     '/': { title: 'لوحة التحكم', subtitle: 'نظرة سريعة على أداء الشبكة' },
@@ -20,9 +21,9 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex bg-[#f6f7fb] dark:bg-[#0f1117]" dir="rtl">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="flex-1 min-w-0 flex flex-col">
-        <TopBar title={page.title} subtitle={page.subtitle} user={auth} onLogout={() => navigate('/login')} />
+        <TopBar title={page.title} subtitle={page.subtitle} user={auth} onLogout={() => navigate('/login')} onMenuToggle={() => setSidebarOpen(true)} />
         <div className="p-5 md:p-8 max-w-[1440px] w-full mx-auto">
           <Outlet />
         </div>

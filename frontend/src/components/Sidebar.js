@@ -10,11 +10,12 @@ import {
   Waves,
   Bell,
   User2,
+  X,
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { toast } from 'sonner';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { logout, metrics, notifications } = useData();
   const navigate = useNavigate();
   const unreadCount = (notifications || []).filter((n) => !n.read).length;
@@ -34,10 +35,15 @@ export default function Sidebar() {
     navigate('/login');
   }
 
-  return (
-    <aside className="w-[260px] shrink-0 hidden md:flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200/70 dark:border-slate-700/70 sidebar-shadow">
+  function handleNavClick() {
+    // Close sidebar on mobile after navigation
+    if (onClose) onClose();
+  }
+
+  const sidebarContent = (
+    <aside className="w-[260px] shrink-0 flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200/70 dark:border-slate-700/70 sidebar-shadow h-full">
       {/* Brand */}
-      <div className="px-6 pt-7 pb-6 border-b border-slate-100 dark:border-slate-700/70">
+      <div className="px-6 pt-7 pb-6 border-b border-slate-100 dark:border-slate-700/70 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-md shadow-indigo-200">
             <Waves className="w-6 h-6 text-white" />
@@ -48,6 +54,14 @@ export default function Sidebar() {
             <div className="text-[11px] text-slate-500 tracking-wide">Live Net · Management</div>
           </div>
         </div>
+        {/* Close button - mobile only */}
+        <button
+          onClick={onClose}
+          className="md:hidden w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600"
+          style={{ transition: 'background-color .2s' }}
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scroll-thin">
@@ -56,6 +70,7 @@ export default function Sidebar() {
             key={to}
             to={to}
             end={end}
+            onClick={handleNavClick}
             className={({ isActive }) =>
               [
                 'group flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-[15px] font-semibold',
@@ -102,6 +117,7 @@ export default function Sidebar() {
         </div>
         <NavLink
           to="/profile"
+          onClick={handleNavClick}
           className={({ isActive }) =>
             `mt-3 w-full flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl border ${
               isActive
@@ -124,5 +140,36 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop: always visible */}
+      <div className="hidden md:flex">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile: overlay drawer */}
+      {isOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex" dir="rtl">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          {/* Drawer slides in from right */}
+          <div className="relative z-10 flex h-full" style={{ animation: 'slideInFromRight 0.25s ease-out' }}>
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideInFromRight {
+          from { transform: translateX(-100%); opacity: 0; }
+          to   { transform: translateX(0);     opacity: 1; }
+        }
+      `}</style>
+    </>
   );
 }

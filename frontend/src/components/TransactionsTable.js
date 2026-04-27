@@ -82,9 +82,14 @@ export default function TransactionsTable({ onEdit, hideFilters = false, nameFil
       if (!byName[r.name]) byName[r.name] = [];
       byName[r.name].push(r);
     });
-    // Sort each distributor's ops by ts ascending
+    // Sort each distributor's ops by date ascending, then ts as tiebreaker for same-date records.
+    // date (YYYY-MM-DD) is the user-intended chronological order.
+    // ts is only used as tiebreaker for records on the same date.
     Object.keys(byName).forEach((name) => {
-      byName[name].sort((a, b) => a.ts - b.ts);
+      byName[name].sort((a, b) => {
+        if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+        return (a.ts || 0) - (b.ts || 0);
+      });
     });
 
     const balanceMap = {}; // id -> { old, remain }

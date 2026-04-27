@@ -59,10 +59,16 @@ export default function OperationForm({ editing, onDone }) {
   // Old debt computed by replaying all operations of this distributor in chronological order,
   // excluding the record being edited (if any). This ensures deletion/editing of any record
   // correctly recalculates the real balance.
+  // Sort priority: date (user-specified, YYYY-MM-DD string sorts correctly), then ts as tiebreaker.
   const oldDebt = useMemo(() => {
     if (!name) return 0;
     const pool = editing ? records.filter((r) => r.id !== editing.id) : records;
-    const ops = pool.filter((r) => r.name === name).sort((a, b) => a.ts - b.ts);
+    const ops = pool
+      .filter((r) => r.name === name)
+      .sort((a, b) => {
+        if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+        return (a.ts || 0) - (b.ts || 0);
+      });
     let debt = 0;
     ops.forEach((r) => {
       const isBatch = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
@@ -111,7 +117,9 @@ export default function OperationForm({ editing, onDone }) {
       paid: opType === 'دفعة' ? paidNum : 0,
       remain,
       note: note.trim(),
-      ts: Date.now(),
+      // On edit: preserve the original ts so sort order is not disrupted.
+      // On new record: set ts to now for tiebreaking same-date records.
+      ...(editing ? {} : { ts: Date.now() }),
     };
 
     try {

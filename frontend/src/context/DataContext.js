@@ -303,8 +303,14 @@ export function DataProvider({ children }) {
 
     const result = [];
     map.forEach(({ name, ops }) => {
-      // Sort operations by timestamp ascending (oldest first) to replay in order
-      const sorted = [...ops].sort((a, b) => a.ts - b.ts);
+      // Sort operations by date ascending (user-specified date), then ts as tiebreaker for same-date records.
+      // Using date string (YYYY-MM-DD) which sorts correctly lexicographically.
+      // We do NOT sort by ts alone because: editing preserves original ts, and a record
+      // entered late for a past date would get a high ts but should come early chronologically.
+      const sorted = [...ops].sort((a, b) => {
+        if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+        return (a.ts || 0) - (b.ts || 0);
+      });
 
       // Compute real debt by replaying all operations in chronological order:
       // - طبعة (batch/receive): adds qty * price to the debt

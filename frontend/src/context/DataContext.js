@@ -289,22 +289,51 @@ export function DataProvider({ children }) {
   // ===== Derived =====
   const distributors = useMemo(() => {
     const map = new Map();
+
+    // جمع كل أسماء الموزعين مع آخر تاريخ لكل واحد
     const sorted = [...records].sort((a, b) => b.ts - a.ts);
     sorted.forEach((r) => {
       if (!map.has(r.name)) {
         map.set(r.name, {
           name: r.name,
-          debt: Number(r.remain) || 0,
+          debt: 0,
           lastDate: r.date,
           lastTs: r.ts,
           recordsCount: 0,
         });
       }
     });
+
+    // حساب الدين الحقيقي لكل موزع من الصفر بناءً على كل عملياته
     records.forEach((r) => {
       const d = map.get(r.name);
       if (d) d.recordsCount++;
     });
+
+    map.forEach((dist, distName) => {
+      // ترتيب عمليات الموزع تصاعدياً (الأقدم أولاً)
+      const distRecords = records
+        .filter((r) => r.name === distName)
+        .sort((a, b) => {
+          if (a.ts !== b.ts) return a.ts - b.ts;
+          return (a.date || '').localeCompare(b.date || '');
+        });
+
+      let runningBalance = 0;
+      for (const r of distRecords) {
+        const isBatch = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
+        if (isBatch) {
+          const qty = Number(r.qty) || 0;
+          const price = Number(r.price) || 0;
+          runningBalance += qty * price;
+        }
+        const paid = Number(r.paid) || 0;
+        runningBalance -= paid;
+      }
+
+      dist.debt = Math.max(0, Math.round(runningBalance));
+    });
+
     return Array.from(map.values()).sort((a, b) => b.debt - a.debt);
   }, [records]);
 

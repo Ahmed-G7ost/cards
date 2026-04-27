@@ -56,12 +56,44 @@ export default function OperationForm({ editing, onDone }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
-  // Old debt derived from last record of the selected distributor (excluding the one being edited)
+  // حساب الدين الحقيقي للموزع من الصفر بناءً على كل عملياته مرتبةً زمنياً
+  // هذا يضمن صحة الحساب عند الحذف أو التعديل أو إعادة الترتيب
   const oldDebt = useMemo(() => {
     if (!name) return 0;
-    const pool = editing ? records.filter((r) => r.id !== editing.id) : records;
-    const list = pool.filter((r) => r.name === name).sort((a, b) => b.ts - a.ts);
-    return list.length ? Number(list[0].remain) || 0 : 0;
+
+    // استثناء العملية الحالية عند التعديل
+    const pool = editing
+      ? records.filter((r) => r.id !== editing.id)
+      : records;
+
+    // فلترة عمليات الموزع المحدد ثم ترتيبها تصاعدياً (الأقدم أولاً)
+    const distRecords = pool
+      .filter((r) => r.name === name)
+      .sort((a, b) => {
+        // الترتيب بالطابع الزمني أولاً، ثم بالتاريخ كاحتياط
+        if (a.ts !== b.ts) return a.ts - b.ts;
+        return (a.date || '').localeCompare(b.date || '');
+      });
+
+    if (distRecords.length === 0) return 0;
+
+    // إعادة حساب الرصيد التراكمي من الصفر
+    let runningBalance = 0;
+    for (const r of distRecords) {
+      const isBatch = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
+      if (isBatch) {
+        // عملية استلام: إضافة قيمة الطبعة إلى الدين
+        const qty = Number(r.qty) || 0;
+        const price = Number(r.price) || 0;
+        runningBalance += qty * price;
+      }
+      // خصم أي مبلغ مدفوع في هذه العملية (يشمل الطبعات والدفعات)
+      const paid = Number(r.paid) || 0;
+      runningBalance -= paid;
+    }
+
+    // الرصيد لا يكون سالباً (لا توجد ديون لصالح الموزع)
+    return Math.max(0, Math.round(runningBalance));
   }, [name, records, editing]);
 
   const qtyNum = Number(qty) || 0;

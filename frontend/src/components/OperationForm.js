@@ -56,12 +56,25 @@ export default function OperationForm({ editing, onDone }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
-  // Old debt derived from last record of the selected distributor (excluding the one being edited)
+  // احتساب الدين الحقيقي من الصفر: مجموع المستحقات - مجموع الدفعات (باستثناء السجل المحرَّر)
   const oldDebt = useMemo(() => {
     if (!name) return 0;
     const pool = editing ? records.filter((r) => r.id !== editing.id) : records;
-    const list = pool.filter((r) => r.name === name).sort((a, b) => b.ts - a.ts);
-    return list.length ? Number(list[0].remain) || 0 : 0;
+    const distRecords = pool.filter((r) => r.name === name);
+
+    let totalOwed = 0;
+    let totalPaid = 0;
+
+    distRecords.forEach((r) => {
+      if (r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'))) {
+        totalOwed += (Number(r.qty) || 0) * (Number(r.price) || 0);
+      } else if (r.opType === 'دين سابق') {
+        totalOwed += Number(r.remain) || 0;
+      }
+      totalPaid += Number(r.paid) || 0;
+    });
+
+    return Math.round(totalOwed - totalPaid);
   }, [name, records, editing]);
 
   const qtyNum = Number(qty) || 0;

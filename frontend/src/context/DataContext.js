@@ -315,24 +315,49 @@ export function DataProvider({ children }) {
 
   // ===== Derived =====
   const distributors = useMemo(() => {
+    // احتساب الدين من الصفر: مجموع كل المستحقات ناقص مجموع كل الدفعات
     const map = new Map();
-    const sorted = [...records].sort((a, b) => b.ts - a.ts);
-    sorted.forEach((r) => {
+
+    records.forEach((r) => {
       if (!map.has(r.name)) {
         map.set(r.name, {
           name: r.name,
-          debt: Number(r.remain) || 0,
+          totalOwed: 0,
+          totalPaid: 0,
           lastDate: r.date,
           lastTs: r.ts,
           recordsCount: 0,
         });
       }
-    });
-    records.forEach((r) => {
       const d = map.get(r.name);
-      if (d) d.recordsCount++;
+      d.recordsCount++;
+
+      // تحديث آخر تاريخ وطابع زمني
+      if ((r.ts || 0) > (d.lastTs || 0)) {
+        d.lastDate = r.date;
+        d.lastTs = r.ts;
+      }
+
+      // جمع المستحقات: طبعة = العدد × السعر، دين سابق = القيمة المخزنة
+      if (r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'))) {
+        d.totalOwed += (Number(r.qty) || 0) * (Number(r.price) || 0);
+      } else if (r.opType === 'دين سابق') {
+        d.totalOwed += Number(r.remain) || 0;
+      }
+
+      // جمع كل الدفعات من أي سجل
+      d.totalPaid += Number(r.paid) || 0;
     });
-    return Array.from(map.values()).sort((a, b) => b.debt - a.debt);
+
+    return Array.from(map.values())
+      .map((d) => ({
+        name: d.name,
+        debt: Math.round(d.totalOwed - d.totalPaid),
+        lastDate: d.lastDate,
+        lastTs: d.lastTs,
+        recordsCount: d.recordsCount,
+      }))
+      .sort((a, b) => b.debt - a.debt);
   }, [records]);
 
   const metrics = useMemo(() => {

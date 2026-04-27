@@ -287,53 +287,108 @@ export function DataProvider({ children }) {
   }
 
   // ===== Derived =====
+
+  /**
+   * يبني قائمة الموزعين مع رصيد الدين الحقيقي لكل موزع.
+   *
+   * منطق الحساب:
+   * - يُرتَّب كل سجل زمنياً تصاعدياً (من الأقدم للأحدث).
+   * - لكل موزع، تُحسب المستحقات بصورة تراكمية:
+   *     رصيد جديد = رصيد سابق + (قيمة الطبعة إن وجدت) - (الدفعة المدفوعة)
+   * - الرصيد النهائي هو `remain` من آخر سجل زمنياً للموزع،
+   *   وهو القيمة المحفوظة فعلياً عند كل عملية في قاعدة البيانات.
+   * - نعتمد على `remain` المحفوظ مباشرةً لأنه يمثل الحالة الصحيحة
+   *   عند لحظة تسجيل كل عملية، وهو ما يضمن دقة تاريخية كاملة.
+   */
   const distributors = useMemo(() => {
-    const map = new Map();
-    const sorted = [...records].sort((a, b) => b.ts - a.ts);
-    sorted.forEach((r) => {
-      if (!map.has(r.name)) {
-        map.set(r.name, {
-          name: r.name,
-          debt: Number(r.remain) || 0,
-          lastDate: r.date,
-          lastTs: r.ts,
-          recordsCount: 0,
-        });
+    // نفصل سجلات كل موزع ونرتبها زمنياً (الأحدث أولاً للحصول على آخر رصيد)
+    const distributorMap = new Map();
+
+    // المرور الأول: نحصل على آخر سجل لكل موزع (يحمل الرصيد الحالي الصحيح)
+    const recordsByDistributor = new Map();
+    records.forEach((r) => {
+      const existing = recordsByDistributor.get(r.name);
+      if (!existing || r.ts > existing.ts) {
+        recordsByDistributor.set(r.name, r);
       }
     });
+
+    // المرور الثاني: نحسب إجماليات كل موزع
+    const countMap = new Map();
     records.forEach((r) => {
-      const d = map.get(r.name);
-      if (d) d.recordsCount++;
+      countMap.set(r.name, (countMap.get(r.name) || 0) + 1);
     });
-    return Array.from(map.values()).sort((a, b) => b.debt - a.debt);
+
+    // بناء قائمة الموزعين النهائية
+    recordsByDistributor.forEach((latestRecord, name) => {
+      const currentDebt = Number(latestRecord.remain) || 0;
+      distributorMap.set(name, {
+        name,
+        // الرصيد المستحق الحالي = remain من آخر سجل زمنياً
+        debt: currentDebt,
+        lastDate: latestRecord.date,
+        lastTs: latestRecord.ts,
+        recordsCount: countMap.get(name) || 0,
+      });
+    });
+
+    // ترتيب تنازلي حسب حجم الدين
+    return Array.from(distributorMap.values()).sort((a, b) => b.debt - a.debt);
   }, [records]);
 
+  /**
+   * يحسب مؤشرات الأداء المالي الرئيسية للشبكة.
+   *
+   * تعريفات المؤشرات:
+   * - totalSales   : إجمالي قيمة الفروخ الموزَّعة (الكمية × السعر) من جميع طبعات التوزيع.
+   * - totalChicks  : إجمالي عدد الفروخ الموزَّعة عبر جميع الطبعات.
+   * - totalPaid    : إجمالي المبالغ المحصَّلة من الموزعين (جميع الدفعات المسجَّلة).
+   * - netProfit    : صافي الربح = إجمالي المحصَّل - (الكمية المقابلة للمبلغ المحصَّل × تكلفة الفرخ).
+   *                  الفكرة: لكل شيكل محصَّل، نحسب عدد الفروخ التي دفع ثمنها الموزع،
+   *                  ثم نطرح تكلفة تلك الفروخ للحصول على الهامش الصافي.
+   * - networkDebt  : إجمالي الديون المستحقة على الشبكة (باستثناء الموزعين المستثنين في الإعدادات).
+   *                  يُحتسب فقط الرصيد الموجب (دين فعلي)؛ الأرصدة السالبة تُهمل.
+   */
   const metrics = useMemo(() => {
-    const cost = settings.cost || 50;
-    let totalSales = 0;
-    let netProfit = 0;
-    let totalChicks = 0;
-    let totalPaid = 0;
+    const costPerUnit = Number(settings.cost) || 25;
+
+    let totalSales = 0;   // إجمالي المبيعات بالشيكل
+    let totalChicks = 0;  // إجمالي عدد الفروخ
+    let totalPaid = 0;    // إجمالي المحصَّل
+    let netProfit = 0;    // صافي الربح
 
     records.forEach((r) => {
-      if (r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'))) {
-        const qty = Number(r.qty) || 0;
-        const price = Number(r.price) || 0;
-        totalSales += qty * price;
+      const isBatchRecord = r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'));
+      const qty = Number(r.qty) || 0;
+      const unitPrice = Number(r.price) || 0;
+      const paidAmount = Number(r.paid) || 0;
+
+      // طبعة توزيع: نضيف قيمتها للمبيعات وعدد الفروخ
+      if (isBatchRecord && qty > 0 && unitPrice > 0) {
+        totalSales += qty * unitPrice;
         totalChicks += qty;
       }
-      const paid = Number(r.paid) || 0;
-      const price = Number(r.price) || 90;
-      if (paid > 0 && price > 0) {
-        const earnedQty = paid / price;
-        netProfit += earnedQty * (price - cost);
+
+      // أي مبلغ مدفوع (سواء مع طبعة أو دفعة مستقلة)
+      if (paidAmount > 0) {
+        totalPaid += paidAmount;
+
+        // صافي الربح على هذه الدفعة:
+        // نحدد سعر الوحدة المرجعي (إما سعر الطبعة، أو السعر الافتراضي للإعدادات)
+        const referencePrice = unitPrice > 0 ? unitPrice : (Number(settings.defaultPrice) || 90);
+        // عدد الفروخ التي يغطيها هذا المبلغ المدفوع
+        const coveredQty = paidAmount / referencePrice;
+        // الهامش = (سعر البيع - تكلفة الشراء) × الكمية المغطاة
+        netProfit += coveredQty * (referencePrice - costPerUnit);
       }
-      totalPaid += paid;
     });
 
-    const networkDebt = distributors
-      .filter((d) => !settings.excluded.includes(d.name))
-      .reduce((sum, d) => sum + (d.debt > 0 ? d.debt : 0), 0);
+    // ديون الشبكة: مجموع الأرصدة الموجبة فقط، مع استثناء الموزعين المحددين في الإعدادات
+    const excludedSet = new Set(settings.excluded || []);
+    const networkDebt = distributors.reduce((sum, d) => {
+      if (excludedSet.has(d.name)) return sum;
+      return sum + (d.debt > 0 ? d.debt : 0);
+    }, 0);
 
     return {
       totalSales: Math.round(totalSales),

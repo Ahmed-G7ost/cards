@@ -202,8 +202,45 @@ export function DataProvider({ children }) {
   }
 
   async function deleteRecord(id) {
+    // إيجاد اسم الموزع قبل الحذف
+    const target = records.find((r) => r.id === id);
+    const distributorName = target?.name;
+
     const recRef = dbRef(db, `distributors/${id}`);
     await remove(recRef);
+
+    // إعادة حساب old وremain لباقي سجلات نفس الموزع بالترتيب الزمني
+    if (distributorName) {
+      const remaining = records
+        .filter((r) => r.id !== id && r.name === distributorName)
+        .sort((a, b) => a.ts - b.ts);
+
+      if (remaining.length > 0) {
+        const updates = {};
+        let running = 0;
+
+        remaining.forEach((r) => {
+          const oldVal = Math.round(running);
+
+          if (r.opType === 'طبعة' || (r.type && r.type.includes('طبعة'))) {
+            running += (Number(r.qty) || 0) * (Number(r.price) || 0);
+            running -= Number(r.paid) || 0;
+          } else if (r.opType === 'دين سابق') {
+            running += Number(r.remain) || 0;
+          } else {
+            // دفعة مالية
+            running -= Number(r.paid) || 0;
+          }
+
+          const remainVal = Math.round(running);
+          updates[`distributors/${r.id}/old`] = oldVal;
+          updates[`distributors/${r.id}/remain`] = remainVal;
+        });
+
+        await update(dbRef(db), updates);
+      }
+    }
+
     try {
       const logsRef = dbRef(db, 'system_logs');
       push(logsRef, {

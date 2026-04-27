@@ -47,6 +47,7 @@ export default function Settings() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
+  const [newUserRole, setNewUserRole] = useState('reader');
   const [newUserShowPass, setNewUserShowPass] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
 
@@ -527,6 +528,63 @@ export default function Settings() {
                 </button>
               </div>
             </div>
+
+            {/* اختيار دور المستخدم */}
+            <div className="space-y-2 sm:col-span-2">
+              <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5" /> دور المستخدم
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  {
+                    value: 'admin',
+                    label: 'مسؤول',
+                    desc: 'صلاحيات كاملة',
+                    color: 'rose',
+                    icon: '🔑',
+                  },
+                  {
+                    value: 'manager',
+                    label: 'مدير',
+                    desc: 'إدارة العمليات',
+                    color: 'amber',
+                    icon: '🛠️',
+                  },
+                  {
+                    value: 'reader',
+                    label: 'قارئ',
+                    desc: 'عرض فقط',
+                    color: 'sky',
+                    icon: '👁️',
+                  },
+                ].map((r) => {
+                  const selected = newUserRole === r.value;
+                  const colorMap = {
+                    rose: selected
+                      ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300'
+                      : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-rose-300',
+                    amber: selected
+                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                      : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-amber-300',
+                    sky: selected
+                      ? 'border-sky-500 bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300'
+                      : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:border-sky-300',
+                  };
+                  return (
+                    <button
+                      key={r.value}
+                      type="button"
+                      onClick={() => setNewUserRole(r.value)}
+                      className={`rounded-xl border-2 p-3 flex flex-col items-center gap-1 transition-all cursor-pointer ${colorMap[r.color]}`}
+                    >
+                      <span className="text-xl">{r.icon}</span>
+                      <span className="text-sm font-bold">{r.label}</span>
+                      <span className="text-[11px] opacity-75">{r.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           <Button
@@ -534,13 +592,15 @@ export default function Settings() {
               if (!newUserEmail.trim()) { toast.error('أدخل البريد الإلكتروني'); return; }
               if (newUserPassword.length < 6) { toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل'); return; }
               setCreatingUser(true);
-              const res = await createUser(newUserEmail.trim(), newUserPassword, newUserName.trim() || undefined);
+              const res = await createUser(newUserEmail.trim(), newUserPassword, newUserName.trim() || undefined, newUserRole);
               setCreatingUser(false);
               if (res.ok) {
-                toast.success(`✅ تم إنشاء الحساب بنجاح: ${newUserEmail.trim()}`);
+                const roleLabels = { admin: 'مسؤول', manager: 'مدير', reader: 'قارئ' };
+                toast.success(`✅ تم إنشاء الحساب بنجاح: ${newUserEmail.trim()} (${roleLabels[newUserRole]})`);
                 setNewUserEmail('');
                 setNewUserPassword('');
                 setNewUserName('');
+                setNewUserRole('reader');
               } else {
                 toast.error(res.message);
               }
@@ -557,7 +617,7 @@ export default function Settings() {
           <div className="rounded-xl bg-indigo-50/60 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 p-3 flex items-start gap-2">
             <div className="text-indigo-500 text-lg">ℹ️</div>
             <p className="text-xs text-indigo-700 dark:text-indigo-400 leading-relaxed">
-              بعد إنشاء الحساب، يمكن للمستخدم الجديد تسجيل الدخول بالبريد وكلمة المرور التي أدخلتها. أنت كمسؤول ستبقى مسجلاً دخولك.
+              بعد إنشاء الحساب، يمكن للمستخدم الجديد تسجيل الدخول بالبريد وكلمة المرور التي أدخلتها. يتم تحديد الصلاحيات حسب الدور المختار: <strong>مسؤول</strong> (صلاحيات كاملة)، <strong>مدير</strong> (إدارة العمليات)، <strong>قارئ</strong> (عرض فقط). أنت كمسؤول ستبقى مسجلاً دخولك.
             </p>
           </div>
         </CardContent>

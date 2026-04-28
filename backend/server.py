@@ -61,10 +61,17 @@ async def delete_user(uid: str):
         )
     try:
         firebase_auth.delete_user(uid)
+        logger.info(f"تم حذف المستخدم {uid} من Firebase Authentication بنجاح")
         return {"success": True, "message": "تم حذف المستخدم من Firebase Authentication بنجاح"}
     except firebase_auth.UserNotFoundError:
+        # المستخدم غير موجود في Auth - ربما حُذف مسبقاً
+        logger.warning(f"المستخدم {uid} غير موجود في Firebase Authentication")
         raise HTTPException(status_code=404, detail="المستخدم غير موجود في Firebase Authentication")
+    except firebase_admin.exceptions.FirebaseError as e:
+        logger.error(f"خطأ Firebase عند حذف {uid}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"فشل حذف المستخدم من Firebase: {str(e)}")
     except Exception as e:
+        logger.error(f"خطأ غير متوقع عند حذف {uid}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"فشل حذف المستخدم: {str(e)}")
 
 @api_router.post("/status", response_model=StatusCheck)

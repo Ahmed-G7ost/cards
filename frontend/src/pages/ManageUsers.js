@@ -129,27 +129,40 @@ export default function ManageUsers() {
   async function confirmDelete(uid) {
     setDeletingId(uid);
     try {
-      // حذف من Firebase Authentication عبر الـ backend
+      // الخطوة 1: حذف من Firebase Authentication عبر الـ backend أولاً
       const backendUrl = process.env.REACT_APP_BACKEND_URL || `${window.location.protocol}//${window.location.hostname}:8001`;
-      const res = await fetch(`${backendUrl}/api/users/${uid}`, { method: 'DELETE' });
 
-      // حذف من Realtime Database
-      await remove(dbRef(db, `users/${uid}`));
+      let authDeleted = false;
+      try {
+        const res = await fetch(`${backendUrl}/api/users/${uid}`, { method: 'DELETE' });
+        if (res.ok) {
+          authDeleted = true;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          // إذا المستخدم غير موجود في Auth أصلاً، نعتبره محذوفاً
+          if (res.status === 404) {
+            authDeleted = true;
+          } else {
+            toast.error(`فشل حذف تسجيل الدخول: ${errData.detail || 'خطأ من السيرفر'}`);
+            setDeletingId(null);
+            setConfirmDeleteId(null);
+            return;
+          }
+        }
+      } catch (networkErr) {
+        toast.error('تعذّر الاتصال بالسيرفر. تأكد من تشغيل الـ Backend وإعداد FIREBASE_SERVICE_ACCOUNT_KEY');
+        setDeletingId(null);
+        setConfirmDeleteId(null);
+        return;
+      }
 
-      if (!res.ok) {
-        // الحذف من DB نجح، لكن Auth فشل - نُعلم المستخدم
-        toast.success('تم حذف بيانات الحساب ✅ (تعذّر حذف تسجيل الدخول، تحقق من إعداد FIREBASE_SERVICE_ACCOUNT_KEY)');
-      } else {
-        toast.success('تم حذف الحساب نهائياً من Firebase بنجاح ✅');
+      // الخطوة 2: بعد نجاح حذف Authentication، احذف من Realtime Database
+      if (authDeleted) {
+        await remove(dbRef(db, `users/${uid}`));
+        toast.success('تم حذف الحساب نهائياً من Firebase Authentication وقاعدة البيانات ✅');
       }
     } catch (err) {
-      // إذا فشل طلب الـ backend كلياً، نحذف من DB على الأقل
-      try {
-        await remove(dbRef(db, `users/${uid}`));
-        toast.success('تم حذف بيانات الحساب ✅ (تعذّر الاتصال بالسيرفر لحذف تسجيل الدخول)');
-      } catch {
-        toast.error('حدث خطأ أثناء الحذف');
-      }
+      toast.error('حدث خطأ أثناء الحذف: ' + (err.message || ''));
     }
     setDeletingId(null);
     setConfirmDeleteId(null);

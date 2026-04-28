@@ -14,6 +14,7 @@ import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import CreateUser from './pages/CreateUser';
+import ManageUsers from './pages/ManageUsers';
 
 function Protected({ children }) {
   const { auth, authLoading } = useData();
@@ -51,6 +52,7 @@ function AppRoutes() {
         <Route path="notifications" element={<Notifications />} />
         <Route path="profile" element={<Profile />} />
         <Route path="create-user" element={<CreateUser />} />
+        <Route path="manage-users" element={<ManageUsers />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

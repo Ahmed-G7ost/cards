@@ -12,6 +12,7 @@ import {
   User2,
   X,
   UserPlus,
+  UsersRound,
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { toast } from 'sonner';
@@ -28,6 +29,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { to: '/reports', label: 'التقارير', icon: FileBarChart2 },
     { to: '/notifications', label: 'الإشعارات', icon: Bell, badge: unreadCount },
     ...(userRole === 'admin' ? [{ to: '/create-user', label: 'إنشاء حساب', icon: UserPlus }] : []),
+    ...(userRole === 'admin' ? [{ to: '/manage-users', label: 'إدارة الحسابات', icon: UsersRound }] : []),
     { to: '/settings', label: 'الإعدادات', icon: Settings2 },
   ];
 

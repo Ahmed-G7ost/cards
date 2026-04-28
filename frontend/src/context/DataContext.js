@@ -171,7 +171,7 @@ export function DataProvider({ children }) {
   }
 
   // ===== إنشاء حساب مستخدم جديد (للمسؤول فقط) =====
-  async function createUser(email, password, displayName) {
+  async function createUser(email, password, displayName, role) {
     try {
       // نستخدم Firebase SDK مباشرة مع app ثانوي لا يؤثر على جلسة المسؤول
       const { initializeApp: _init, getApps: _getApps } = await import('firebase/app');
@@ -181,15 +181,26 @@ export function DataProvider({ children }) {
         _init(firebaseApp.options, 'secondary');
       const secondaryAuth = _getAuth(secondaryApp);
       const cred = await _create(secondaryAuth, email, password);
+      const uid = cred.user.uid;
       if (displayName) {
         await _update(cred.user, { displayName });
       }
       await _signOut(secondaryAuth);
+      // حفظ الدور في Firebase Database تحت مسار users/{uid}
+      try {
+        await dbSet(dbRef(db, `users/${uid}`), {
+          email,
+          displayName: displayName || '',
+          role: role || 'reader',
+          createdBy: auth_?.email || 'unknown',
+          createdAt: Date.now(),
+        });
+      } catch (_) {}
       try {
         const logsRef = dbRef(db, 'system_logs');
         push(logsRef, {
           action: 'إنشاء مستخدم',
-          details: { email, displayName },
+          details: { email, displayName, role },
           user: auth_?.email || 'unknown',
           ts: Date.now(),
         });

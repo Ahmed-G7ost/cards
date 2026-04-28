@@ -9,6 +9,7 @@ import { auth } from '../firebase';
 import {
   updatePassword,
   updateProfile,
+  updateEmail,
   reauthenticateWithCredential,
   EmailAuthProvider,
 } from 'firebase/auth';
@@ -28,6 +29,10 @@ export default function Profile() {
   const [confirmPass, setConfirmPass] = useState('');
   const [passSaving, setPassSaving] = useState(false);
 
+  const [newEmail, setNewEmail] = useState('');
+  const [emailCurrentPass, setEmailCurrentPass] = useState('');
+  const [emailSaving, setEmailSaving] = useState(false);
+
   // إحصائيات بسيطة
   const totalOps = records.length;
   const totalDist = distributors.length;
@@ -45,6 +50,43 @@ export default function Profile() {
       toast.error('فشل التحديث: ' + (err?.message || ''));
     } finally {
       setNameSaving(false);
+    }
+  }
+
+  async function handleChangeEmail() {
+    if (!newEmail.trim() || !emailCurrentPass) {
+      toast.error('يرجى ملء جميع الحقول');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail.trim())) {
+      toast.error('يرجى إدخال بريد إلكتروني صحيح');
+      return;
+    }
+    if (newEmail.trim() === auth.currentUser.email) {
+      toast.error('البريد الإلكتروني الجديد يطابق الحالي');
+      return;
+    }
+    setEmailSaving(true);
+    try {
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, emailCurrentPass);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      await updateEmail(auth.currentUser, newEmail.trim());
+      toast.success('تم تحديث البريد الإلكتروني بنجاح');
+      setNewEmail('');
+      setEmailCurrentPass('');
+    } catch (err) {
+      if (err?.code === 'auth/wrong-password' || err?.code === 'auth/invalid-credential') {
+        toast.error('كلمة المرور الحالية غير صحيحة');
+      } else if (err?.code === 'auth/email-already-in-use') {
+        toast.error('البريد الإلكتروني مستخدم بالفعل');
+      } else if (err?.code === 'auth/requires-recent-login') {
+        toast.error('يرجى تسجيل الدخول مجدداً ثم المحاولة');
+      } else {
+        toast.error('فشل تحديث البريد: ' + (err?.message || ''));
+      }
+    } finally {
+      setEmailSaving(false);
     }
   }
 
@@ -155,6 +197,71 @@ export default function Profile() {
               </Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* تغيير البريد الإلكتروني */}
+      <Card className="card-soft border-0">
+        <CardHeader>
+          <CardTitle className="text-lg font-extrabold flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 flex items-center justify-center">
+              <Mail className="w-4 h-4" />
+            </div>
+            تغيير البريد الإلكتروني
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5 block">
+              البريد الإلكتروني الحالي
+            </Label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Input
+                value={user?.email || ''}
+                disabled
+                className="pr-10 h-11 bg-slate-100 dark:bg-slate-800/60 rounded-xl text-slate-400 cursor-not-allowed"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5 block">
+              البريد الإلكتروني الجديد
+            </Label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="أدخل البريد الإلكتروني الجديد"
+                className="pr-10 h-11 bg-slate-50 dark:bg-slate-800 rounded-xl"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1.5 block">
+              كلمة المرور للتأكيد
+            </Label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Input
+                type="password"
+                value={emailCurrentPass}
+                onChange={(e) => setEmailCurrentPass(e.target.value)}
+                placeholder="••••••••"
+                className="pr-10 h-11 bg-slate-50 dark:bg-slate-800 rounded-xl"
+              />
+            </div>
+          </div>
+          <Button
+            onClick={handleChangeEmail}
+            disabled={emailSaving}
+            className="w-full h-11 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold"
+          >
+            {emailSaving ? 'جاري التحديث...' : <><CheckCircle2 className="w-4 h-4 ml-2" /> تحديث البريد الإلكتروني</>}
+          </Button>
+          <p className="text-[11px] text-slate-400 text-center">يتطلب إدخال كلمة المرور الحالية للتحقق من الهوية</p>
         </CardContent>
       </Card>
 

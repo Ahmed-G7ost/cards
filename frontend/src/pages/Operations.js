@@ -7,11 +7,12 @@ import { Button } from '../components/ui/button';
 import { Plus, ListChecks } from 'lucide-react';
 
 export default function Operations() {
-  const { records } = useData();
+  const { records, userRole } = useData();
   const [editingRecord, setEditingRecord] = useState(null);
 
   return (
     <div className="space-y-6 animate-fade-up">
+      {userRole !== 'reader' && (
       <Card className="card-soft border-0">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <div>
@@ -31,6 +32,7 @@ export default function Operations() {
           <OperationForm editing={editingRecord} onDone={() => setEditingRecord(null)} />
         </CardContent>
       </Card>
+      )}
 
       <Card className="card-soft border-0">
         <CardHeader className="pb-3">

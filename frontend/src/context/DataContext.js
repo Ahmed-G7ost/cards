@@ -16,6 +16,7 @@ import {
   update,
   remove,
   set as dbSet,
+  get,
 } from 'firebase/database';
 
 const DataContext = createContext(null);
@@ -69,9 +70,17 @@ export function DataProvider({ children }) {
 
   // Watch Firebase Auth state
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setAuthUser({ email: user.email, name: user.displayName || user.email?.split('@')[0] || 'مسؤول', uid: user.uid });
+        // جلب الدور من قاعدة البيانات
+        let role = 'admin'; // افتراضي للمستخدمين القدامى الذين لا يوجد لهم سجل
+        try {
+          const snap = await get(dbRef(db, 'users/' + user.uid));
+          if (snap.exists() && snap.val().role) {
+            role = snap.val().role;
+          }
+        } catch (_) {}
+        setAuthUser({ email: user.email, name: user.displayName || user.email?.split('@')[0] || 'مسؤول', uid: user.uid, role });
       } else {
         setAuthUser(null);
       }
@@ -486,6 +495,7 @@ export function DataProvider({ children }) {
   const value = {
     records,
     auth: auth_,
+    userRole: auth_?.role || 'admin',
     authLoading,
     dataLoading,
     login,

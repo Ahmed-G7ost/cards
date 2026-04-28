@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 const CHICK_TYPES = ['8 ساعات', '10 ساعات', '24 ساعة'];
 
 export default function OperationForm({ editing, onDone }) {
-  const { records, addRecord, updateRecord, distributors, settings } = useData();
+  const { records, addRecord, updateRecord, distributors, settings, userRole } = useData();
 
   const todayStr = new Date().toISOString().split('T')[0];
   const [opType, setOpType] = useState('طبعة');
@@ -274,7 +274,7 @@ export default function OperationForm({ editing, onDone }) {
       )}
 
       <div className="col-span-full flex gap-3">
-        <Button type="submit" className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md shadow-indigo-200">
+        <Button type="submit" disabled={userRole === 'reader'} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed">
           <Save className="w-4 h-4 ml-2" />
           {editing ? 'تحديث العملية' : 'حفظ العملية'}
         </Button>

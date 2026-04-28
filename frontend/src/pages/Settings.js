@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 export default function Settings() {
   const { settings, setSettings, distributors, resetData, saveDistributorInitialDebts,
     phones: fbPhones, savePhones, internetMsg: fbInternetMsg, paymentMsg: fbPaymentMsg,
-    notifMsg: fbNotifMsg, saveMessages, DEFAULT_INTERNET_MSG, DEFAULT_PAYMENT_MSG, DEFAULT_NOTIF_MSG } = useData();
+    notifMsg: fbNotifMsg, saveMessages, DEFAULT_INTERNET_MSG, DEFAULT_PAYMENT_MSG, DEFAULT_NOTIF_MSG, userRole } = useData();
   const [cost, setCost] = useState(settings.cost);
   const [defaultPrice, setDefaultPrice] = useState(settings.defaultPrice);
   const [prices, setPrices] = useState(settings.prices || { '8 ساعات': 70, '10 ساعات': 90, '24 ساعة': 150 });
@@ -164,7 +164,7 @@ export default function Settings() {
             <p className="text-[11px] text-slate-500 mt-1">يظهر بشكل تلقائي في نموذج العملية</p>
           </div>
           <div className="flex items-end">
-            <Button onClick={saveFinancials} className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
+            <Button onClick={saveFinancials} disabled={userRole === 'reader'} className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed">
               حفظ الإعدادات
             </Button>
           </div>
@@ -192,7 +192,7 @@ export default function Settings() {
             </div>
           ))}
           <div className="flex items-end">
-            <Button onClick={saveFinancials} className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+            <Button onClick={saveFinancials} disabled={userRole === 'reader'} className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed">
               حفظ الأسعار
             </Button>
           </div>
@@ -476,7 +476,7 @@ export default function Settings() {
               <div className="font-extrabold text-rose-800 dark:text-rose-300">تصفير كل البيانات</div>
               <div className="text-xs text-rose-700 dark:text-rose-400">سيتم حذف جميع السجلات بشكل نهائي. يُنصح بتحميل نسخة احتياطية قبل المتابعة.</div>
             </div>
-            <Button variant="destructive" onClick={() => setConfirmReset(true)} className="rounded-xl">تصفير الآن</Button>
+            <Button variant="destructive" onClick={() => setConfirmReset(true)} disabled={userRole !== 'admin'} className="rounded-xl disabled:opacity-40 disabled:cursor-not-allowed">تصفير الآن</Button>
           </div>
         </CardContent>
       </Card>

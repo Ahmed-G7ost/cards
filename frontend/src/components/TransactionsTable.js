@@ -49,7 +49,7 @@ function buildMessage(template, r) {
 }
 
 export default function TransactionsTable({ onEdit, hideFilters = false, nameFilter, fromFilter, toFilter }) {
-  const { records, deleteRecord, distributors, settings, phones, internetMsg, paymentMsg } = useData();
+  const { records, deleteRecord, distributors, settings, phones, internetMsg, paymentMsg, userRole } = useData();
   const [innerName, setInnerName] = useState('');
   const [innerFrom, setInnerFrom] = useState('');
   const [innerTo, setInnerTo] = useState('');
@@ -211,12 +211,16 @@ export default function TransactionsTable({ onEdit, hideFilters = false, nameFil
                       >
                         <MessageSquareText className="w-4 h-4" />
                       </button>
+                      {userRole !== 'reader' && (
                       <button type="button" title="تعديل" onClick={() => onEdit?.(r)} className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center hover:bg-indigo-100 dark:hover:bg-indigo-900/50" style={{ transition: 'background-color .2s' }}>
                         <Edit3 className="w-4 h-4" />
                       </button>
+                      )}
+                      {userRole === 'admin' && (
                       <button type="button" title="حذف" onClick={() => setConfirmDel(r.id)} className="w-9 h-9 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center hover:bg-rose-100 dark:hover:bg-rose-900/50" style={{ transition: 'background-color .2s' }}>
                         <Trash2 className="w-4 h-4" />
                       </button>
+                      )}
                     </div>
                   </td>
                 </tr>

@@ -25,7 +25,7 @@ import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 
 export default function Distributors() {
-  const { distributors, records, bulkRenameDistributor, phones, notifMsg, DEFAULT_NOTIF_MSG, saveMessages, paymentMsg, internetMsg } = useData();
+  const { distributors, records, bulkRenameDistributor, phones, notifMsg, DEFAULT_NOTIF_MSG, saveMessages, paymentMsg, internetMsg, userRole } = useData();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
   const [renameOpen, setRenameOpen] = useState(false);
@@ -121,9 +121,11 @@ export default function Distributors() {
               <Button variant="outline" onClick={() => { setEditNotifMsgText(notifMsg || DEFAULT_NOTIF_MSG); setEditNotifMsgOpen(true); }} className="rounded-xl font-bold text-violet-700 border-violet-200 hover:bg-violet-50">
                 <Settings2 className="w-4 h-4 ml-2" /> إعدادات رسالة الإشعار
               </Button>
+              {userRole !== 'reader' && (
               <Button variant="outline" onClick={() => setRenameOpen(true)} className="rounded-xl font-bold">
                 <UserCog className="w-4 h-4 ml-2" /> تعديل اسم موزع
               </Button>
+              )}
             </div>
           </div>
         </CardHeader>

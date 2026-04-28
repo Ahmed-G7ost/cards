@@ -17,7 +17,7 @@ import { useData } from '../context/DataContext';
 import { toast } from 'sonner';
 
 export default function Sidebar({ isOpen, onClose }) {
-  const { logout, metrics, notifications } = useData();
+  const { logout, metrics, notifications, userRole } = useData();
   const navigate = useNavigate();
   const unreadCount = (notifications || []).filter((n) => !n.read).length;
 
@@ -27,7 +27,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { to: '/distributors', label: 'الموزعون', icon: Users2 },
     { to: '/reports', label: 'التقارير', icon: FileBarChart2 },
     { to: '/notifications', label: 'الإشعارات', icon: Bell, badge: unreadCount },
-    { to: '/create-user', label: 'إنشاء حساب', icon: UserPlus },
+    ...(userRole === 'admin' ? [{ to: '/create-user', label: 'إنشاء حساب', icon: UserPlus }] : []),
     { to: '/settings', label: 'الإعدادات', icon: Settings2 },
   ];
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { ref as dbRef, onValue } from 'firebase/database';
+import { ref as dbRef, onValue, update, remove } from 'firebase/database';
 import { useData } from '../context/DataContext';
 import {
   Users,
@@ -71,15 +71,17 @@ function formatDate(ts) {
 }
 
 export default function ManageUsers() {
-  const { auth, userRole, deleteUserRecord, updateUserRecord } = useData();
+  const { auth, userRole } = useData();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Edit state
   const [editingId, setEditingId] = useState(null);
   const [editRole, setEditRole] = useState('');
   const [editName, setEditName] = useState('');
   const [savingId, setSavingId] = useState(null);
 
+  // Delete confirm
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
@@ -101,7 +103,6 @@ export default function ManageUsers() {
     setEditingId(user.uid);
     setEditRole(user.role || 'reader');
     setEditName(user.displayName || '');
-    setConfirmDeleteId(null);
   }
 
   function cancelEdit() {
@@ -112,29 +113,46 @@ export default function ManageUsers() {
 
   async function saveEdit(uid) {
     setSavingId(uid);
-    const res = await updateUserRecord(uid, {
-      displayName: editName.trim(),
-      role: editRole,
-    });
-    setSavingId(null);
-    if (res.ok) {
+    try {
+      await update(dbRef(db, `users/${uid}`), {
+        displayName: editName.trim(),
+        role: editRole,
+      });
       toast.success('تم تحديث بيانات الحساب بنجاح ✅');
       cancelEdit();
-    } else {
-      toast.error(res.message || 'حدث خطأ أثناء التحديث');
+    } catch (err) {
+      toast.error('حدث خطأ أثناء التحديث');
     }
+    setSavingId(null);
   }
 
-  async function handleDelete(uid) {
+  async function confirmDelete(uid) {
     setDeletingId(uid);
-    const res = await deleteUserRecord(uid);
-    setDeletingId(null);
-    if (res.ok) {
-      toast.success('تم حذف الحساب نهائياً');
-      setConfirmDeleteId(null);
-    } else {
-      toast.error(res.message || 'حدث خطأ أثناء الحذف');
+    try {
+      // حذف من Firebase Authentication عبر الـ backend
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || `${window.location.protocol}//${window.location.hostname}:8001`;
+      const res = await fetch(`${backendUrl}/api/users/${uid}`, { method: 'DELETE' });
+
+      // حذف من Realtime Database
+      await remove(dbRef(db, `users/${uid}`));
+
+      if (!res.ok) {
+        // الحذف من DB نجح، لكن Auth فشل - نُعلم المستخدم
+        toast.success('تم حذف بيانات الحساب ✅ (تعذّر حذف تسجيل الدخول، تحقق من إعداد FIREBASE_SERVICE_ACCOUNT_KEY)');
+      } else {
+        toast.success('تم حذف الحساب نهائياً من Firebase بنجاح ✅');
+      }
+    } catch (err) {
+      // إذا فشل طلب الـ backend كلياً، نحذف من DB على الأقل
+      try {
+        await remove(dbRef(db, `users/${uid}`));
+        toast.success('تم حذف بيانات الحساب ✅ (تعذّر الاتصال بالسيرفر لحذف تسجيل الدخول)');
+      } catch {
+        toast.error('حدث خطأ أثناء الحذف');
+      }
     }
+    setDeletingId(null);
+    setConfirmDeleteId(null);
   }
 
   if (userRole !== 'admin') {
@@ -152,6 +170,7 @@ export default function ManageUsers() {
     <div className="min-h-full p-4 sm:p-8" dir="rtl">
       <div className="max-w-3xl mx-auto">
 
+        {/* Page header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-md shadow-indigo-200">
@@ -164,10 +183,11 @@ export default function ManageUsers() {
           </div>
           <div className="mt-4 flex items-center gap-2 text-xs text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-xl px-4 py-3">
             <ShieldCheck className="w-4 h-4 shrink-0" />
-            <span>تسجيل دخول حالي: <span className="font-bold">{auth?.email}</span> · يمكنك تعديل أدوار الحسابات أو حذفها نهائياً من قاعدة البيانات.</span>
+            <span>تسجيل دخول حالي: <span className="font-bold">{auth?.email}</span> · يمكنك تعديل أدوار الحسابات أو حذفها.</span>
           </div>
         </div>
 
+        {/* Content */}
         <div className="card-soft p-6 animate-fade-up">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -186,7 +206,6 @@ export default function ManageUsers() {
                 const RoleIcon = roleInfo.icon;
                 const isEditing = editingId === user.uid;
                 const isCurrentUser = auth?.uid === user.uid;
-                const isConfirmingDelete = confirmDeleteId === user.uid;
 
                 return (
                   <div
@@ -195,16 +214,17 @@ export default function ManageUsers() {
                       'rounded-2xl border transition-all duration-200',
                       isEditing
                         ? roleInfo.bg + ' ' + roleInfo.border
-                        : isConfirmingDelete
-                        ? 'bg-rose-50 dark:bg-rose-900/10 border-rose-300 dark:border-rose-800'
                         : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700',
                     ].join(' ')}
                   >
+                    {/* Card main row */}
                     <div className="flex items-center gap-4 p-4">
+                      {/* Role icon */}
                       <div className={['w-11 h-11 rounded-xl flex items-center justify-center shrink-0', roleInfo.iconBg].join(' ')}>
                         <RoleIcon className={['w-5 h-5', roleInfo.iconColor].join(' ')} />
                       </div>
 
+                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">
@@ -223,7 +243,8 @@ export default function ManageUsers() {
                         </div>
                       </div>
 
-                      {!isEditing && !isConfirmingDelete && (
+                      {/* Actions */}
+                      {!isEditing && (
                         <div className="flex items-center gap-2 shrink-0">
                           <button
                             onClick={() => startEdit(user)}
@@ -234,7 +255,7 @@ export default function ManageUsers() {
                           </button>
                           {!isCurrentUser && (
                             <button
-                              onClick={() => { setConfirmDeleteId(user.uid); setEditingId(null); }}
+                              onClick={() => setConfirmDeleteId(user.uid)}
                               className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 flex items-center justify-center transition-colors"
                               title="حذف"
                             >
@@ -245,8 +266,10 @@ export default function ManageUsers() {
                       )}
                     </div>
 
+                    {/* Edit panel */}
                     {isEditing && (
                       <div className="px-4 pb-4 space-y-4 border-t border-slate-200/60 dark:border-slate-700/60 pt-4">
+                        {/* Edit name */}
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-slate-600 dark:text-slate-400">الاسم</label>
                           <input
@@ -258,6 +281,7 @@ export default function ManageUsers() {
                           />
                         </div>
 
+                        {/* Role selector */}
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-slate-600 dark:text-slate-400">نوع الحساب</label>
                           <div className="grid grid-cols-3 gap-2">
@@ -295,6 +319,7 @@ export default function ManageUsers() {
                           </div>
                         </div>
 
+                        {/* Save / Cancel */}
                         <div className="flex gap-2 pt-1">
                           <Button
                             onClick={() => saveEdit(user.uid)}
@@ -324,22 +349,23 @@ export default function ManageUsers() {
                       </div>
                     )}
 
-                    {isConfirmingDelete && (
-                      <div className="px-4 pb-4 border-t border-rose-200 dark:border-rose-800/60 pt-4">
+                    {/* Delete confirm panel */}
+                    {confirmDeleteId === user.uid && (
+                      <div className="px-4 pb-4 border-t border-rose-200 dark:border-rose-800/60 pt-4 bg-rose-50/60 dark:bg-rose-900/10 rounded-b-2xl">
                         <div className="flex items-start gap-3 mb-3">
                           <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
                           <div>
-                            <p className="text-sm font-bold text-rose-700 dark:text-rose-400">تأكيد الحذف النهائي</p>
+                            <p className="text-sm font-bold text-rose-700 dark:text-rose-400">تأكيد الحذف</p>
                             <p className="text-xs text-rose-500 mt-0.5">
-                              سيتم حذف بيانات <span className="font-bold">{user.displayName || user.email}</span> نهائياً من قاعدة البيانات. هذا الإجراء لا يمكن التراجع عنه.
+                              سيتم حذف بيانات الحساب من قاعدة البيانات. لن يستطيع المستخدم الدخول بعد ذلك.
                             </p>
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleDelete(user.uid)}
+                            onClick={() => confirmDelete(user.uid)}
                             disabled={deletingId === user.uid}
-                            className="flex-1 h-9 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+                            className="flex-1 h-9 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors"
                           >
                             {deletingId === user.uid ? (
                               <span className="flex items-center gap-2">
@@ -349,7 +375,7 @@ export default function ManageUsers() {
                             ) : (
                               <span className="flex items-center gap-2">
                                 <Trash2 className="w-4 h-4" />
-                                نعم، احذف نهائياً
+                                نعم، احذف
                               </span>
                             )}
                           </button>
@@ -369,6 +395,7 @@ export default function ManageUsers() {
           )}
         </div>
 
+        {/* Count */}
         {!loading && users.length > 0 && (
           <p className="text-center text-xs text-slate-400 mt-4">
             إجمالي الحسابات: <span className="font-bold text-slate-600 dark:text-slate-300">{users.length}</span>

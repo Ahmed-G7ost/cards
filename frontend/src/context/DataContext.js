@@ -179,42 +179,6 @@ export function DataProvider({ children }) {
     } catch (_) {}
   }
 
-  // ===== حذف سجل مستخدم من قاعدة البيانات =====
-  async function deleteUserRecord(uid) {
-    try {
-      await remove(dbRef(db, `users/${uid}`));
-      try {
-        push(dbRef(db, 'system_logs'), {
-          action: 'حذف مستخدم',
-          details: { uid },
-          user: auth_?.email || 'unknown',
-          ts: Date.now(),
-        });
-      } catch (_) {}
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, message: 'فشل حذف الحساب' };
-    }
-  }
-
-  // ===== تعديل بيانات مستخدم في قاعدة البيانات =====
-  async function updateUserRecord(uid, patch) {
-    try {
-      await update(dbRef(db, `users/${uid}`), patch);
-      try {
-        push(dbRef(db, 'system_logs'), {
-          action: 'تعديل مستخدم',
-          details: { uid, ...patch },
-          user: auth_?.email || 'unknown',
-          ts: Date.now(),
-        });
-      } catch (_) {}
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, message: 'فشل تعديل الحساب' };
-    }
-  }
-
   // ===== إنشاء حساب مستخدم جديد (للمسؤول فقط) =====
   async function createUser(email, password, displayName, role) {
     try {
@@ -537,8 +501,6 @@ export function DataProvider({ children }) {
     login,
     logout,
     createUser,
-    deleteUserRecord,
-    updateUserRecord,
     addRecord,
     updateRecord,
     deleteRecord,

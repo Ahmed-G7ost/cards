@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -9,10 +9,19 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List
 import uuid
 from datetime import datetime, timezone
+import firebase_admin
+from firebase_admin import credentials, auth as firebase_auth
 
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Firebase Admin SDK initialization
+firebase_service_account = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
+if firebase_service_account and not firebase_admin._apps:
+    import json
+    cred = credentials.Certificate(json.loads(firebase_service_account))
+    firebase_admin.initialize_app(cred)
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -41,6 +50,22 @@ class StatusCheckCreate(BaseModel):
 @api_router.get("/")
 async def root():
     return {"message": "Hello World"}
+
+@api_router.delete("/users/{uid}")
+async def delete_user(uid: str):
+    """حذف مستخدم نهائياً من Firebase Authentication"""
+    if not firebase_admin._apps:
+        raise HTTPException(
+            status_code=503,
+            detail="Firebase Admin SDK غير مهيأ. يرجى إضافة FIREBASE_SERVICE_ACCOUNT_KEY في بيئة السيرفر."
+        )
+    try:
+        firebase_auth.delete_user(uid)
+        return {"success": True, "message": "تم حذف المستخدم من Firebase Authentication بنجاح"}
+    except firebase_auth.UserNotFoundError:
+        raise HTTPException(status_code=404, detail="المستخدم غير موجود في Firebase Authentication")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"فشل حذف المستخدم: {str(e)}")
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):

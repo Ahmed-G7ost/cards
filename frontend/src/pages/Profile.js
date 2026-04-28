@@ -71,7 +71,11 @@ export default function Profile() {
     try {
       const credential = EmailAuthProvider.credential(auth.currentUser.email, emailCurrentPass);
       await reauthenticateWithCredential(auth.currentUser, credential);
-      await verifyBeforeUpdateEmail(auth.currentUser, newEmail.trim());
+      const actionCodeSettings = {
+        url: window.location.origin,
+        handleCodeInApp: false,
+      };
+      await verifyBeforeUpdateEmail(auth.currentUser, newEmail.trim(), actionCodeSettings);
       toast.success('تم إرسال رابط التحقق إلى البريد الجديد، يرجى تأكيده لإتمام التغيير');
       setNewEmail('');
       setEmailCurrentPass('');
@@ -82,6 +86,8 @@ export default function Profile() {
         toast.error('البريد الإلكتروني مستخدم بالفعل');
       } else if (err?.code === 'auth/requires-recent-login') {
         toast.error('يرجى تسجيل الدخول مجدداً ثم المحاولة');
+      } else if (err?.code === 'auth/unauthorized-continue-uri') {
+        toast.error('يرجى إضافة رابط الموقع في Firebase Console ضمن Authorized Domains');
       } else {
         toast.error('فشل تحديث البريد: ' + (err?.message || ''));
       }

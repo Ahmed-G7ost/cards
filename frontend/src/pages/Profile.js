@@ -9,7 +9,7 @@ import { auth } from '../firebase';
 import {
   updatePassword,
   updateProfile,
-  updateEmail,
+  verifyBeforeUpdateEmail,
   reauthenticateWithCredential,
   EmailAuthProvider,
 } from 'firebase/auth';
@@ -71,8 +71,8 @@ export default function Profile() {
     try {
       const credential = EmailAuthProvider.credential(auth.currentUser.email, emailCurrentPass);
       await reauthenticateWithCredential(auth.currentUser, credential);
-      await updateEmail(auth.currentUser, newEmail.trim());
-      toast.success('تم تحديث البريد الإلكتروني بنجاح');
+      await verifyBeforeUpdateEmail(auth.currentUser, newEmail.trim());
+      toast.success('تم إرسال رابط التحقق إلى البريد الجديد، يرجى تأكيده لإتمام التغيير');
       setNewEmail('');
       setEmailCurrentPass('');
     } catch (err) {
@@ -259,9 +259,9 @@ export default function Profile() {
             disabled={emailSaving}
             className="w-full h-11 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold"
           >
-            {emailSaving ? 'جاري التحديث...' : <><CheckCircle2 className="w-4 h-4 ml-2" /> تحديث البريد الإلكتروني</>}
+            {emailSaving ? 'جاري الإرسال...' : <><CheckCircle2 className="w-4 h-4 ml-2" /> إرسال رابط التحقق</>}
           </Button>
-          <p className="text-[11px] text-slate-400 text-center">يتطلب إدخال كلمة المرور الحالية للتحقق من الهوية</p>
+          <p className="text-[11px] text-slate-400 text-center">سيتم إرسال رابط تحقق إلى البريد الجديد لإتمام التغيير</p>
         </CardContent>
       </Card>
 

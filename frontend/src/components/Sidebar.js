@@ -11,6 +11,7 @@ import {
   Bell,
   User2,
   X,
+  UserPlus,
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { toast } from 'sonner';
@@ -26,6 +27,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { to: '/distributors', label: 'الموزعون', icon: Users2 },
     { to: '/reports', label: 'التقارير', icon: FileBarChart2 },
     { to: '/notifications', label: 'الإشعارات', icon: Bell, badge: unreadCount },
+    { to: '/create-user', label: 'إنشاء حساب', icon: UserPlus },
     { to: '/settings', label: 'الإعدادات', icon: Settings2 },
   ];
 

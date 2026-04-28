@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import CreateUser from './pages/CreateUser';
 
 function Protected({ children }) {
   const { auth, authLoading } = useData();
@@ -49,6 +50,7 @@ function AppRoutes() {
         <Route path="settings" element={<Settings />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="create-user" element={<CreateUser />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
